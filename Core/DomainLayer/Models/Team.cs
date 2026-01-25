@@ -8,6 +8,7 @@
 
         public int DoctorId { get; set; }
         public Doctor Doctor { get; set; }
+        public int ProjectId { get; set; }
         public Project Project { get; set; }
         public ICollection<Student> Students { get; set; }
         public ICollection<Meeting> Meetings { get; set; }

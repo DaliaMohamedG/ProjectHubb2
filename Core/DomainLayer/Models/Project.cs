@@ -10,7 +10,6 @@
 
         public int DoctorId { get; set; }
         public Doctor Doctor { get; set; }
-        public int TeamId { get; set; }
         public Team Team { get; set; }
         public int AssistantId { get; set; }
         public Assistant Assistant { get; set; }

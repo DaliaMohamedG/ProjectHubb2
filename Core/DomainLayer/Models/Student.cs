@@ -8,6 +8,6 @@
         public string University_Name { get; set; } = null!;
 
         public ICollection<Team> Teams { get; set; }
-        public ICollection<Task> Tasks { get; set; }
+        public ICollection<TeamTasks> Tasks { get; set; }
     }
 }

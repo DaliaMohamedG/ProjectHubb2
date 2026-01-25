@@ -1,6 +1,6 @@
 ﻿namespace DomainLayer.Models
 {
-    public class Task
+    public class TeamTasks
     {
         public int Id { get; set; }
         public string Details { get; set; }
