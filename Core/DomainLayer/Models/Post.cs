@@ -1,15 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace DomainLayer.Models
+﻿namespace DomainLayer.Models
 {
     public class Post
     {
         public int Id { get; set; }
         public string Content { get; set; } = null!;
         public string Status { get; set; } = null!;
+
+        public int AdminId { get; set; }
+        public Admin Admin { get; set; }
+        public int CommunityId { get; set; }
+        public Community Community { get; set; }
+        public int UserId { get; set; }
+        public User User { get; set; }
+        public ICollection<Comment> Comments { get; set; }
+
     }
 }

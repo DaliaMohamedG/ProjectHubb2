@@ -1,12 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace DomainLayer.Models
+﻿namespace DomainLayer.Models
 {
-    public class Assistant : User 
+    public class Assistant : User
     {
+        public string University_Name { get; set; } = null!;
+
+        public ICollection<Project> Projects { get; set; }
+        public ICollection<Task> Tasks { get; set; }
     }
 }
