@@ -4,7 +4,7 @@
     {
         public int Id { get; set; }
         public string Content { get; set; } = null!;
-        public string Status { get; set; } = null!;
+        public PostStatus Status { get; set; } 
 
         public int AdminId { get; set; }
         public Admin Admin { get; set; }
