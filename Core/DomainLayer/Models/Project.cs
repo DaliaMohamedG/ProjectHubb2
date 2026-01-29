@@ -8,10 +8,10 @@
         public string TechnologyUsed { get; set; }
         public string ProjectFilePath { get; set; }
 
-        public int DoctorId { get; set; }
+        public string DoctorId { get; set; }
         public Doctor Doctor { get; set; }
         public Team Team { get; set; }
-        public int AssistantId { get; set; }
+        public string AssistantId { get; set; }
         public Assistant Assistant { get; set; }
         public ICollection<Sponsor> Sponsors { get; set; }
         public ICollection<Conversation> Conversations { get; set; }

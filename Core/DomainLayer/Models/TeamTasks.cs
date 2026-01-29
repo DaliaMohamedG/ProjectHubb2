@@ -8,12 +8,11 @@
         public string Status { get; set; }
         public string SolutionFile { get; set; }
 
-
-        public int StudentId { get; set; }
-        public Student Student { get; set; }
-        public int DoctorID { get; set; }
-        public Doctor Doctor { get; set; }
-        public int AssistantId { get; set; }
-        public Assistant Assistant { get; set; }
+        public string StudentId { get; set; }
+        public User Student { get; set; }
+        public string DoctorId { get; set; }
+        public User Doctor { get; set; }
+        public string AssistantId { get; set; }
+        public User Assistant { get; set; }
     }
 }

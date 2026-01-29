@@ -7,7 +7,7 @@
         public string ZoomLink { get; set; } // unique
         public string Details { get; set; }
 
-        public int DoctorId { get; set; }
+        public string DoctorId { get; set; }
         public Doctor Doctor { get; set; }
         public int TeamId { get; set; }
         public Team Team { get; set; }

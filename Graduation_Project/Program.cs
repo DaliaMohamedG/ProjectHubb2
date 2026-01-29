@@ -1,3 +1,9 @@
+using DomainLayer.Contracts;
+using Microsoft.EntityFrameworkCore;
+using PersistenceLayer;
+using PersistenceLayer.Repositories;
+using ServicesAbstractionLayer;
+using ServicesLayer;
 
 namespace Graduation_Project
 {
@@ -7,12 +13,18 @@ namespace Graduation_Project
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
-
             builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+
+            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+            builder.Services.AddDbContext<ApplicationDbContext>(options =>
+                options.UseSqlServer(connectionString));
+
+            builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+            builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+            builder.Services.AddScoped<IConversationService, ConversationService>();
 
             var app = builder.Build();
 

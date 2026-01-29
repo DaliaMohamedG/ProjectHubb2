@@ -6,7 +6,7 @@
         public string TeamName { get; set; }
         public string Description { get; set; }
 
-        public int DoctorId { get; set; }
+        public string DoctorId { get; set; }
         public Doctor Doctor { get; set; }
         public int ProjectId { get; set; }
         public Project Project { get; set; }

@@ -3,12 +3,11 @@
     public class Conversation
     {
         public int Id { get; set; }
-        public DateTime StartDate { get; set; }
-
-        public int ProjectId { get; set; }
-        public Project Project { get; set; }
-        public ICollection<User> Users { get; set; }
+        public DateTime Start_Date { get; set; }
+        public string User_ID { get; set; }
+        public User User { get; set; }
+        public string TargetUser_ID { get; set; }
+        public User TargetUser { get; set; }
         public ICollection<Message> Messages { get; set; }
-
     }
 }
