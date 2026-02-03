@@ -12,8 +12,8 @@ using PersistenceLayer;
 namespace PersistenceLayer.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260202010202_StableDatabaseStructure")]
-    partial class StableDatabaseStructure
+    [Migration("20260203210447_fix project model1")]
+    partial class fixprojectmodel1
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -254,15 +254,9 @@ namespace PersistenceLayer.Migrations
                     b.Property<string>("AssignedDoctorId")
                         .HasColumnType("nvarchar(255)");
 
-                    b.Property<string>("AssistantId")
-                        .HasColumnType("nvarchar(255)");
-
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("DoctorId")
-                        .HasColumnType("nvarchar(255)");
 
                     b.Property<string>("ProjectFilePath")
                         .IsRequired()
@@ -281,10 +275,6 @@ namespace PersistenceLayer.Migrations
                     b.HasIndex("AssignedAssistantId");
 
                     b.HasIndex("AssignedDoctorId");
-
-                    b.HasIndex("AssistantId");
-
-                    b.HasIndex("DoctorId");
 
                     b.ToTable("Projects");
                 });
@@ -368,18 +358,12 @@ namespace PersistenceLayer.Migrations
                     b.Property<string>("AssignedStudentId")
                         .HasColumnType("nvarchar(255)");
 
-                    b.Property<string>("AssistantId")
-                        .HasColumnType("nvarchar(255)");
-
                     b.Property<DateTime>("Deadline")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Details")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("DoctorId")
-                        .HasColumnType("nvarchar(255)");
 
                     b.Property<string>("SolutionFile")
                         .IsRequired()
@@ -390,9 +374,6 @@ namespace PersistenceLayer.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<string>("StudentId")
-                        .HasColumnType("nvarchar(255)");
-
                     b.HasKey("Id");
 
                     b.HasIndex("AssignedAssistantId");
@@ -400,12 +381,6 @@ namespace PersistenceLayer.Migrations
                     b.HasIndex("AssignedDoctorId");
 
                     b.HasIndex("AssignedStudentId");
-
-                    b.HasIndex("AssistantId");
-
-                    b.HasIndex("DoctorId");
-
-                    b.HasIndex("StudentId");
 
                     b.ToTable("Tasks");
                 });
@@ -628,22 +603,14 @@ namespace PersistenceLayer.Migrations
             modelBuilder.Entity("DomainLayer.Models.Project", b =>
                 {
                     b.HasOne("DomainLayer.Models.Assistant", "Assistant")
-                        .WithMany()
+                        .WithMany("Projects")
                         .HasForeignKey("AssignedAssistantId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("DomainLayer.Models.Doctor", "Doctor")
-                        .WithMany()
+                        .WithMany("Projects")
                         .HasForeignKey("AssignedDoctorId")
                         .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("DomainLayer.Models.Assistant", null)
-                        .WithMany("Projects")
-                        .HasForeignKey("AssistantId");
-
-                    b.HasOne("DomainLayer.Models.Doctor", null)
-                        .WithMany("Projects")
-                        .HasForeignKey("DoctorId");
 
                     b.Navigation("Assistant");
 
@@ -672,31 +639,19 @@ namespace PersistenceLayer.Migrations
             modelBuilder.Entity("DomainLayer.Models.TeamTasks", b =>
                 {
                     b.HasOne("DomainLayer.Models.Assistant", "Assistant")
-                        .WithMany()
+                        .WithMany("Tasks")
                         .HasForeignKey("AssignedAssistantId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("DomainLayer.Models.Doctor", "Doctor")
-                        .WithMany()
+                        .WithMany("Tasks")
                         .HasForeignKey("AssignedDoctorId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("DomainLayer.Models.Student", "Student")
-                        .WithMany()
+                        .WithMany("Tasks")
                         .HasForeignKey("AssignedStudentId")
                         .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("DomainLayer.Models.Assistant", null)
-                        .WithMany("Tasks")
-                        .HasForeignKey("AssistantId");
-
-                    b.HasOne("DomainLayer.Models.Doctor", null)
-                        .WithMany("Tasks")
-                        .HasForeignKey("DoctorId");
-
-                    b.HasOne("DomainLayer.Models.Student", null)
-                        .WithMany("Tasks")
-                        .HasForeignKey("StudentId");
 
                     b.Navigation("Assistant");
 

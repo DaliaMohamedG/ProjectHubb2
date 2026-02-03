@@ -25,4 +25,5 @@ namespace DomainLayer.Models
         [ForeignKey("AssignedAssistantId")]
         public virtual Assistant? Assistant { get; set; }
     }
+
 }

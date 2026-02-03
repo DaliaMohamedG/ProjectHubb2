@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PersistenceLayer;
 
@@ -11,9 +12,11 @@ using PersistenceLayer;
 namespace PersistenceLayer.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260203205608_fix task model3")]
+    partial class fixtaskmodel3
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -355,12 +358,18 @@ namespace PersistenceLayer.Migrations
                     b.Property<string>("AssignedStudentId")
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<string>("AssistantId")
+                        .HasColumnType("nvarchar(255)");
+
                     b.Property<DateTime>("Deadline")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Details")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DoctorId")
+                        .HasColumnType("nvarchar(255)");
 
                     b.Property<string>("SolutionFile")
                         .IsRequired()
@@ -371,6 +380,9 @@ namespace PersistenceLayer.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<string>("StudentId")
+                        .HasColumnType("nvarchar(255)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AssignedAssistantId");
@@ -378,6 +390,12 @@ namespace PersistenceLayer.Migrations
                     b.HasIndex("AssignedDoctorId");
 
                     b.HasIndex("AssignedStudentId");
+
+                    b.HasIndex("AssistantId");
+
+                    b.HasIndex("DoctorId");
+
+                    b.HasIndex("StudentId");
 
                     b.ToTable("Tasks");
                 });
@@ -636,19 +654,31 @@ namespace PersistenceLayer.Migrations
             modelBuilder.Entity("DomainLayer.Models.TeamTasks", b =>
                 {
                     b.HasOne("DomainLayer.Models.Assistant", "Assistant")
-                        .WithMany("Tasks")
+                        .WithMany()
                         .HasForeignKey("AssignedAssistantId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("DomainLayer.Models.Doctor", "Doctor")
-                        .WithMany("Tasks")
+                        .WithMany()
                         .HasForeignKey("AssignedDoctorId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("DomainLayer.Models.Student", "Student")
-                        .WithMany("Tasks")
+                        .WithMany()
                         .HasForeignKey("AssignedStudentId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("DomainLayer.Models.Assistant", null)
+                        .WithMany("Tasks")
+                        .HasForeignKey("AssistantId");
+
+                    b.HasOne("DomainLayer.Models.Doctor", null)
+                        .WithMany("Tasks")
+                        .HasForeignKey("DoctorId");
+
+                    b.HasOne("DomainLayer.Models.Student", null)
+                        .WithMany("Tasks")
+                        .HasForeignKey("StudentId");
 
                     b.Navigation("Assistant");
 

@@ -77,20 +77,21 @@ namespace PersistenceLayer
             modelBuilder.Entity<TeamTasks>(entity =>
             {
                 entity.HasOne(t => t.Student)
-                      .WithMany()
+                      .WithMany(s => s.Tasks)
                       .HasForeignKey(t => t.AssignedStudentId)
                       .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasOne(t => t.Doctor)
-                      .WithMany()
+                      .WithMany(d => d.Tasks)
                       .HasForeignKey(t => t.AssignedDoctorId)
                       .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasOne(t => t.Assistant)
-                      .WithMany()
+                      .WithMany(a => a.Tasks)
                       .HasForeignKey(t => t.AssignedAssistantId)
                       .OnDelete(DeleteBehavior.Restrict);
             });
+
 
             modelBuilder.Entity<Post>(entity =>
             {
@@ -125,13 +126,13 @@ namespace PersistenceLayer
             modelBuilder.Entity<Project>(entity =>
             {
                 entity.HasOne(p => p.Doctor)
-                 .WithMany()
-                 .HasForeignKey(p => p.AssignedDoctorId)
-                 .OnDelete(DeleteBehavior.Restrict);
+                      .WithMany(d => d.Projects)
+                      .HasForeignKey(p => p.AssignedDoctorId)
+                      .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasOne(p => p.Assistant)
-                      .WithMany()
-                      .HasForeignKey(t => t.AssignedAssistantId)
+                      .WithMany(a => a.Projects)
+                      .HasForeignKey(p => p.AssignedAssistantId)
                       .OnDelete(DeleteBehavior.Restrict);
             });
         }

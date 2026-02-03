@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace PersistenceLayer.Migrations
 {
     /// <inheritdoc />
-    public partial class StableDatabaseStructure : Migration
+    public partial class fixtaskmodel3 : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -176,9 +176,7 @@ namespace PersistenceLayer.Migrations
                     TechnologyUsed = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ProjectFilePath = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     AssignedDoctorId = table.Column<string>(type: "nvarchar(255)", nullable: true),
-                    AssignedAssistantId = table.Column<string>(type: "nvarchar(255)", nullable: true),
-                    AssistantId = table.Column<string>(type: "nvarchar(255)", nullable: true),
-                    DoctorId = table.Column<string>(type: "nvarchar(255)", nullable: true)
+                    AssignedAssistantId = table.Column<string>(type: "nvarchar(255)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -190,21 +188,11 @@ namespace PersistenceLayer.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_Projects_Assistants_AssistantId",
-                        column: x => x.AssistantId,
-                        principalTable: "Assistants",
-                        principalColumn: "Id");
-                    table.ForeignKey(
                         name: "FK_Projects_Doctors_AssignedDoctorId",
                         column: x => x.AssignedDoctorId,
                         principalTable: "Doctors",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Projects_Doctors_DoctorId",
-                        column: x => x.DoctorId,
-                        principalTable: "Doctors",
-                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -525,16 +513,6 @@ namespace PersistenceLayer.Migrations
                 name: "IX_Projects_AssignedDoctorId",
                 table: "Projects",
                 column: "AssignedDoctorId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Projects_AssistantId",
-                table: "Projects",
-                column: "AssistantId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Projects_DoctorId",
-                table: "Projects",
-                column: "DoctorId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ProjectSponsor_SponsorsId",
