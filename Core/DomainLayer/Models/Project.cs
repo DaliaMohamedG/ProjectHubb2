@@ -1,4 +1,6 @@
-﻿namespace DomainLayer.Models
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace DomainLayer.Models
 {
     public class Project
     {
@@ -8,11 +10,14 @@
         public string TechnologyUsed { get; set; }
         public string ProjectFilePath { get; set; }
 
-        public string DoctorId { get; set; }
-        public Doctor Doctor { get; set; }
         public Team Team { get; set; }
-        public string AssistantId { get; set; }
-        public Assistant Assistant { get; set; }
+        public string? AssignedDoctorId { get; set; }
+        [ForeignKey("AssignedDoctorId")]
+        public virtual Doctor? Doctor { get; set; }
+
+        public string? AssignedAssistantId { get; set; }
+        [ForeignKey("AssignedAssistantId")]
+        public virtual Assistant? Assistant { get; set; }
         public ICollection<Sponsor> Sponsors { get; set; }
         public ICollection<Conversation> Conversations { get; set; }
     }

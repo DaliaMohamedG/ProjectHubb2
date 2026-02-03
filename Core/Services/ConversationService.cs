@@ -12,9 +12,11 @@ namespace ServicesLayer
 
         public async Task<bool> SendMessageAsync(SendMessageDto messageDto)
         {
+            int conversationId = await GetOrCreateConversationAsync(messageDto.SenderId, messageDto.TargetUserId);
+
             var message = new Message
             {
-                Conversation_ID = messageDto.ConversationId,
+                Conversation_ID = conversationId,
                 Sender_ID = messageDto.SenderId,
                 Content = messageDto.Content,
                 Timestamp = DateTime.Now
@@ -22,6 +24,7 @@ namespace ServicesLayer
 
             await _unitOfWork.Repository<Message>().AddAsync(message);
             var result = await _unitOfWork.CompleteAsync();
+
             return result > 0;
         }
 
@@ -30,15 +33,15 @@ namespace ServicesLayer
             var conversations = await _unitOfWork.Repository<Conversation>().GetAllAsync();
 
             var existingChat = conversations.FirstOrDefault(c =>
-                (c.User_ID == currentUserId && c.TargetUser_ID == targetUserId) ||
-                (c.User_ID == targetUserId && c.TargetUser_ID == currentUserId));
+                (c.Sender_ID == currentUserId && c.TargetUser_ID == targetUserId) ||
+                (c.Sender_ID == targetUserId && c.TargetUser_ID == currentUserId));
 
             if (existingChat != null)
                 return existingChat.Id;
 
             var newChat = new Conversation
             {
-                User_ID = currentUserId,
+                Sender_ID = currentUserId,
                 TargetUser_ID = targetUserId,
                 Start_Date = DateTime.Now
             };

@@ -12,8 +12,8 @@ using PersistenceLayer;
 namespace PersistenceLayer.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260129023041_TheGrandFinal")]
-    partial class TheGrandFinal
+    [Migration("20260202010202_StableDatabaseStructure")]
+    partial class StableDatabaseStructure
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,19 +25,41 @@ namespace PersistenceLayer.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("DomainLayer.Models.Admin", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Password")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Admins", (string)null);
+                });
+
             modelBuilder.Entity("DomainLayer.Models.Comment", b =>
                 {
                     b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    b.Property<int>("PostId")
-                        .HasColumnType("int");
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Content")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.HasKey("Id", "PostId");
+                    b.Property<int>("PostId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
 
                     b.HasIndex("PostId");
 
@@ -83,29 +105,29 @@ namespace PersistenceLayer.Migrations
                     b.Property<int?>("ProjectId")
                         .HasColumnType("int");
 
+                    b.Property<string>("Sender_ID")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(255)");
+
                     b.Property<DateTime>("Start_Date")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("TargetUser_ID")
                         .IsRequired()
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("nvarchar(255)");
 
                     b.Property<string>("UserId")
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("User_ID")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("nvarchar(255)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ProjectId");
 
+                    b.HasIndex("Sender_ID");
+
                     b.HasIndex("TargetUser_ID");
 
                     b.HasIndex("UserId");
-
-                    b.HasIndex("User_ID");
 
                     b.ToTable("Conversations");
                 });
@@ -124,10 +146,7 @@ namespace PersistenceLayer.Migrations
 
                     b.Property<string>("DoctorId")
                         .IsRequired()
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("DoctorId1")
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("nvarchar(255)");
 
                     b.Property<DateTime>("ScheduleTime")
                         .HasColumnType("datetime2");
@@ -135,22 +154,16 @@ namespace PersistenceLayer.Migrations
                     b.Property<int>("TeamId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("TeamId1")
-                        .HasColumnType("int");
-
                     b.Property<string>("ZoomLink")
                         .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("DoctorId");
 
-                    b.HasIndex("DoctorId1");
-
                     b.HasIndex("TeamId");
-
-                    b.HasIndex("TeamId1");
 
                     b.HasIndex("ZoomLink")
                         .IsUnique();
@@ -161,33 +174,30 @@ namespace PersistenceLayer.Migrations
             modelBuilder.Entity("DomainLayer.Models.Message", b =>
                 {
                     b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    b.Property<int>("Conversation_ID")
-                        .HasColumnType("int");
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Content")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("ConversationId")
+                    b.Property<int>("Conversation_ID")
                         .HasColumnType("int");
-
-                    b.Property<string>("SenderId")
-                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("Sender_ID")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(255)");
 
                     b.Property<DateTime>("Timestamp")
                         .HasColumnType("datetime2");
 
-                    b.HasKey("Id", "Conversation_ID");
+                    b.HasKey("Id");
 
-                    b.HasIndex("ConversationId");
+                    b.HasIndex("Conversation_ID");
 
-                    b.HasIndex("SenderId");
+                    b.HasIndex("Sender_ID");
 
                     b.ToTable("Messages");
                 });
@@ -202,7 +212,7 @@ namespace PersistenceLayer.Migrations
 
                     b.Property<string>("AdminId")
                         .IsRequired()
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("nvarchar(255)");
 
                     b.Property<int>("CommunityId")
                         .HasColumnType("int");
@@ -212,14 +222,12 @@ namespace PersistenceLayer.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("Status")
+                        .HasMaxLength(500)
                         .HasColumnType("int");
 
                     b.Property<string>("UserId")
                         .IsRequired()
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("UserId1")
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("nvarchar(255)");
 
                     b.HasKey("Id");
 
@@ -228,8 +236,6 @@ namespace PersistenceLayer.Migrations
                     b.HasIndex("CommunityId");
 
                     b.HasIndex("UserId");
-
-                    b.HasIndex("UserId1");
 
                     b.ToTable("Posts");
                 });
@@ -242,23 +248,21 @@ namespace PersistenceLayer.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("AssistantId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(200)");
+                    b.Property<string>("AssignedAssistantId")
+                        .HasColumnType("nvarchar(255)");
 
-                    b.Property<string>("AssistantId1")
-                        .HasColumnType("nvarchar(200)");
+                    b.Property<string>("AssignedDoctorId")
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("AssistantId")
+                        .HasColumnType("nvarchar(255)");
 
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("DoctorId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("DoctorId1")
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("nvarchar(255)");
 
                     b.Property<string>("ProjectFilePath")
                         .IsRequired()
@@ -274,13 +278,13 @@ namespace PersistenceLayer.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("AssignedAssistantId");
+
+                    b.HasIndex("AssignedDoctorId");
+
                     b.HasIndex("AssistantId");
 
-                    b.HasIndex("AssistantId1");
-
                     b.HasIndex("DoctorId");
-
-                    b.HasIndex("DoctorId1");
 
                     b.ToTable("Projects");
                 });
@@ -328,23 +332,20 @@ namespace PersistenceLayer.Migrations
 
                     b.Property<string>("DoctorId")
                         .IsRequired()
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("nvarchar(255)");
 
                     b.Property<int>("ProjectId")
                         .HasColumnType("int");
 
                     b.Property<string>("TeamName")
                         .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("DoctorId");
 
                     b.HasIndex("ProjectId")
-                        .IsUnique();
-
-                    b.HasIndex("TeamName")
                         .IsUnique();
 
                     b.ToTable("Teams");
@@ -358,12 +359,17 @@ namespace PersistenceLayer.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("AssistantId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(200)");
+                    b.Property<string>("AssignedAssistantId")
+                        .HasColumnType("nvarchar(255)");
 
-                    b.Property<string>("AssistantId1")
-                        .HasColumnType("nvarchar(200)");
+                    b.Property<string>("AssignedDoctorId")
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("AssignedStudentId")
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("AssistantId")
+                        .HasColumnType("nvarchar(255)");
 
                     b.Property<DateTime>("Deadline")
                         .HasColumnType("datetime2");
@@ -373,11 +379,7 @@ namespace PersistenceLayer.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("DoctorId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("DoctorId1")
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("nvarchar(255)");
 
                     b.Property<string>("SolutionFile")
                         .IsRequired()
@@ -385,28 +387,25 @@ namespace PersistenceLayer.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("StudentId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("StudentId1")
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("nvarchar(255)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AssistantId");
+                    b.HasIndex("AssignedAssistantId");
 
-                    b.HasIndex("AssistantId1");
+                    b.HasIndex("AssignedDoctorId");
+
+                    b.HasIndex("AssignedStudentId");
+
+                    b.HasIndex("AssistantId");
 
                     b.HasIndex("DoctorId");
 
-                    b.HasIndex("DoctorId1");
-
                     b.HasIndex("StudentId");
-
-                    b.HasIndex("StudentId1");
 
                     b.ToTable("Tasks");
                 });
@@ -414,8 +413,8 @@ namespace PersistenceLayer.Migrations
             modelBuilder.Entity("DomainLayer.Models.User", b =>
                 {
                     b.Property<string>("Id")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
 
                     b.Property<string>("Bio")
                         .IsRequired()
@@ -437,18 +436,11 @@ namespace PersistenceLayer.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("UserRole")
-                        .IsRequired()
-                        .HasMaxLength(13)
-                        .HasColumnType("nvarchar(13)");
-
                     b.HasKey("Id");
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
 
-                    b.HasDiscriminator<string>("UserRole").HasValue("User");
-
-                    b.UseTphMappingStrategy();
+                    b.UseTptMappingStrategy();
                 });
 
             modelBuilder.Entity("ProjectSponsor", b =>
@@ -469,7 +461,7 @@ namespace PersistenceLayer.Migrations
             modelBuilder.Entity("StudentTeam", b =>
                 {
                     b.Property<string>("StudentsId")
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("nvarchar(255)");
 
                     b.Property<int>("TeamsId")
                         .HasColumnType("int");
@@ -481,13 +473,6 @@ namespace PersistenceLayer.Migrations
                     b.ToTable("StudentTeam");
                 });
 
-            modelBuilder.Entity("DomainLayer.Models.Admin", b =>
-                {
-                    b.HasBaseType("DomainLayer.Models.User");
-
-                    b.HasDiscriminator().HasValue("Admin");
-                });
-
             modelBuilder.Entity("DomainLayer.Models.Assistant", b =>
                 {
                     b.HasBaseType("DomainLayer.Models.User");
@@ -496,13 +481,7 @@ namespace PersistenceLayer.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.ToTable("Users", t =>
-                        {
-                            t.Property("University_Name")
-                                .HasColumnName("Assistant_University_Name");
-                        });
-
-                    b.HasDiscriminator().HasValue("Assistant");
+                    b.ToTable("Assistants", (string)null);
                 });
 
             modelBuilder.Entity("DomainLayer.Models.Doctor", b =>
@@ -517,13 +496,7 @@ namespace PersistenceLayer.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.ToTable("Users", t =>
-                        {
-                            t.Property("University_Name")
-                                .HasColumnName("Doctor_University_Name");
-                        });
-
-                    b.HasDiscriminator().HasValue("Doctor");
+                    b.ToTable("Doctors", (string)null);
                 });
 
             modelBuilder.Entity("DomainLayer.Models.Student", b =>
@@ -546,7 +519,7 @@ namespace PersistenceLayer.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.HasDiscriminator().HasValue("Student");
+                    b.ToTable("Students", (string)null);
                 });
 
             modelBuilder.Entity("DomainLayer.Models.Comment", b =>
@@ -566,6 +539,12 @@ namespace PersistenceLayer.Migrations
                         .WithMany("Conversations")
                         .HasForeignKey("ProjectId");
 
+                    b.HasOne("DomainLayer.Models.User", "Sender")
+                        .WithMany()
+                        .HasForeignKey("Sender_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("DomainLayer.Models.User", "TargetUser")
                         .WithMany()
                         .HasForeignKey("TargetUser_ID")
@@ -576,38 +555,24 @@ namespace PersistenceLayer.Migrations
                         .WithMany("Conversations")
                         .HasForeignKey("UserId");
 
-                    b.HasOne("DomainLayer.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("User_ID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                    b.Navigation("Sender");
 
                     b.Navigation("TargetUser");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("DomainLayer.Models.Meeting", b =>
                 {
                     b.HasOne("DomainLayer.Models.Doctor", "Doctor")
-                        .WithMany()
+                        .WithMany("Meetings")
                         .HasForeignKey("DoctorId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
-                    b.HasOne("DomainLayer.Models.Doctor", null)
-                        .WithMany("Meetings")
-                        .HasForeignKey("DoctorId1");
-
                     b.HasOne("DomainLayer.Models.Team", "Team")
-                        .WithMany()
+                        .WithMany("Meetings")
                         .HasForeignKey("TeamId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
-
-                    b.HasOne("DomainLayer.Models.Team", null)
-                        .WithMany("Meetings")
-                        .HasForeignKey("TeamId1");
 
                     b.Navigation("Doctor");
 
@@ -618,13 +583,15 @@ namespace PersistenceLayer.Migrations
                 {
                     b.HasOne("DomainLayer.Models.Conversation", "Conversation")
                         .WithMany("Messages")
-                        .HasForeignKey("ConversationId")
+                        .HasForeignKey("Conversation_ID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("DomainLayer.Models.User", "Sender")
                         .WithMany()
-                        .HasForeignKey("SenderId");
+                        .HasForeignKey("Sender_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("Conversation");
 
@@ -634,7 +601,7 @@ namespace PersistenceLayer.Migrations
             modelBuilder.Entity("DomainLayer.Models.Post", b =>
                 {
                     b.HasOne("DomainLayer.Models.Admin", "Admin")
-                        .WithMany()
+                        .WithMany("Posts")
                         .HasForeignKey("AdminId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -646,14 +613,10 @@ namespace PersistenceLayer.Migrations
                         .IsRequired();
 
                     b.HasOne("DomainLayer.Models.User", "User")
-                        .WithMany()
+                        .WithMany("Posts")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.HasOne("DomainLayer.Models.User", null)
-                        .WithMany("Posts")
-                        .HasForeignKey("UserId1");
 
                     b.Navigation("Admin");
 
@@ -666,23 +629,21 @@ namespace PersistenceLayer.Migrations
                 {
                     b.HasOne("DomainLayer.Models.Assistant", "Assistant")
                         .WithMany()
-                        .HasForeignKey("AssistantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("DomainLayer.Models.Assistant", null)
-                        .WithMany("Projects")
-                        .HasForeignKey("AssistantId1");
+                        .HasForeignKey("AssignedAssistantId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("DomainLayer.Models.Doctor", "Doctor")
                         .WithMany()
-                        .HasForeignKey("DoctorId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .HasForeignKey("AssignedDoctorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("DomainLayer.Models.Assistant", null)
+                        .WithMany("Projects")
+                        .HasForeignKey("AssistantId");
 
                     b.HasOne("DomainLayer.Models.Doctor", null)
                         .WithMany("Projects")
-                        .HasForeignKey("DoctorId1");
+                        .HasForeignKey("DoctorId");
 
                     b.Navigation("Assistant");
 
@@ -710,35 +671,32 @@ namespace PersistenceLayer.Migrations
 
             modelBuilder.Entity("DomainLayer.Models.TeamTasks", b =>
                 {
-                    b.HasOne("DomainLayer.Models.User", "Assistant")
+                    b.HasOne("DomainLayer.Models.Assistant", "Assistant")
                         .WithMany()
-                        .HasForeignKey("AssistantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .HasForeignKey("AssignedAssistantId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("DomainLayer.Models.Doctor", "Doctor")
+                        .WithMany()
+                        .HasForeignKey("AssignedDoctorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("DomainLayer.Models.Student", "Student")
+                        .WithMany()
+                        .HasForeignKey("AssignedStudentId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("DomainLayer.Models.Assistant", null)
                         .WithMany("Tasks")
-                        .HasForeignKey("AssistantId1");
-
-                    b.HasOne("DomainLayer.Models.User", "Doctor")
-                        .WithMany()
-                        .HasForeignKey("DoctorId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .HasForeignKey("AssistantId");
 
                     b.HasOne("DomainLayer.Models.Doctor", null)
                         .WithMany("Tasks")
-                        .HasForeignKey("DoctorId1");
-
-                    b.HasOne("DomainLayer.Models.User", "Student")
-                        .WithMany()
-                        .HasForeignKey("StudentId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .HasForeignKey("DoctorId");
 
                     b.HasOne("DomainLayer.Models.Student", null)
                         .WithMany("Tasks")
-                        .HasForeignKey("StudentId1");
+                        .HasForeignKey("StudentId");
 
                     b.Navigation("Assistant");
 
@@ -773,8 +731,40 @@ namespace PersistenceLayer.Migrations
                     b.HasOne("DomainLayer.Models.Team", null)
                         .WithMany()
                         .HasForeignKey("TeamsId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("DomainLayer.Models.Assistant", b =>
+                {
+                    b.HasOne("DomainLayer.Models.User", null)
+                        .WithOne()
+                        .HasForeignKey("DomainLayer.Models.Assistant", "Id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("DomainLayer.Models.Doctor", b =>
+                {
+                    b.HasOne("DomainLayer.Models.User", null)
+                        .WithOne()
+                        .HasForeignKey("DomainLayer.Models.Doctor", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("DomainLayer.Models.Student", b =>
+                {
+                    b.HasOne("DomainLayer.Models.User", null)
+                        .WithOne()
+                        .HasForeignKey("DomainLayer.Models.Student", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("DomainLayer.Models.Admin", b =>
+                {
+                    b.Navigation("Posts");
                 });
 
             modelBuilder.Entity("DomainLayer.Models.Community", b =>
