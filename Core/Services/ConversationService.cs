@@ -17,7 +17,7 @@ namespace ServicesLayer
             var message = new Message
             {
                 Conversation_ID = conversationId,
-                Sender_ID = messageDto.SenderId,
+                UserID = messageDto.SenderId,
                 Content = messageDto.Content,
                 Timestamp = DateTime.Now
             };
@@ -50,6 +50,20 @@ namespace ServicesLayer
             await _unitOfWork.CompleteAsync();
 
             return newChat.Id;
+        }
+        public async Task<IEnumerable<Message>> GetMessagesByConversationIdAsync(int conversationId)
+        {
+            var messages = await _unitOfWork.Repository<Message>()
+                .FindAsync(m => m.Conversation_ID == conversationId);
+
+            return messages.OrderBy(m => m.Timestamp);
+        }
+        public async Task<IEnumerable<Conversation>> GetUserConversationsAsync(string userId)
+        {
+            var conversations = await _unitOfWork.Repository<Conversation>()
+                .FindAsync(c => c.Sender_ID == userId || c.TargetUser_ID == userId);
+
+            return conversations.OrderByDescending(c => c.Start_Date);
         }
     }
 }

@@ -8,13 +8,11 @@ namespace DomainLayer.Models
         public string TeamName { get; set; }
         public string Description { get; set; }
 
-        [ForeignKey("Doctor")]
-        public string DoctorId { get; set; }
-        public Doctor Doctor { get; set; }
-        [ForeignKey("Project")]
-        public int ProjectId { get; set; }
-        public Project Project { get; set; }
-        public ICollection<Student> Students { get; set; }
-        public ICollection<Meeting> Meetings { get; set; }
+        public string SupervisorId { get; set; }
+        [ForeignKey("SupervisorId")]
+        public virtual Supervisor Supervisor { get; set; }
+
+        public virtual ICollection<Student> Students { get; set; } = new List<Student>();
+        public virtual ICollection<TeamTasks> Tasks { get; set; } = new List<TeamTasks>();
     }
 }

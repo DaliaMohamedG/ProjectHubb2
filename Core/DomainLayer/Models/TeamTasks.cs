@@ -8,22 +8,16 @@ namespace DomainLayer.Models
         public int Id { get; set; }
         public string Details { get; set; }
         public DateTime Deadline { get; set; }
+        public string Status { get; set; } // "Pending", "Done"
+        public string? SolutionFile { get; set; }
 
-        [StringLength(500)]
-        public string Status { get; set; }
-        public string SolutionFile { get; set; }
+        public int TeamId { get; set; }
+        [ForeignKey("TeamId")]
+        public virtual Team Team { get; set; }
 
         public string? AssignedStudentId { get; set; }
         [ForeignKey("AssignedStudentId")]
         public virtual Student? Student { get; set; }
-
-        public string? AssignedDoctorId { get; set; }
-        [ForeignKey("AssignedDoctorId")]
-        public virtual Doctor? Doctor { get; set; }
-
-        public string? AssignedAssistantId { get; set; }
-        [ForeignKey("AssignedAssistantId")]
-        public virtual Assistant? Assistant { get; set; }
     }
 
 }

@@ -29,5 +29,20 @@ namespace Graduation_Project.Controllers
             var id = await _conversationService.GetOrCreateConversationAsync(userId, targetId);
             return Ok(new { conversationId = id });
         }
+
+
+        [HttpGet("my-conversations/{userId}")]
+        public async Task<IActionResult> GetConversations(string userId)
+        {
+            var conversations = await _conversationService.GetUserConversationsAsync(userId);
+            return Ok(conversations);
+        }
+
+        [HttpGet("messages/{conversationId}")]
+        public async Task<IActionResult> GetMessages(int conversationId)
+        {
+            var messages = await _conversationService.GetMessagesByConversationIdAsync(conversationId);
+            return Ok(messages);
+        }
     }
 }

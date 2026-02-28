@@ -2,14 +2,14 @@
 {
     public class User
     {
-        public string Id { get; set; }
-        public string Name { get; set; } = null!;
+        public string Id { get; set; } = Guid.NewGuid().ToString();
+        public string FullName { get; set; } = null!;
         public string Email { get; set; } = null!;
-        public string Password { get; set; } = null!;
-        public string Bio { get; set; } = null!;
-        public string Profile_Image { get; set; } = null!;
+        public string Instituation { get; set; } = null!;
+        public string? Faculty { get; set; }
+        public string? Profile_Image { get; set; }
 
-        public ICollection<Post> Posts { get; set; }
-        public ICollection<Conversation> Conversations { get; set; }
+        public virtual ICollection<Post> Posts { get; set; } = new List<Post>();
+        public virtual ICollection<Message> Messages { get; set; } = new List<Message>();
     }
 }

@@ -10,15 +10,20 @@ namespace DomainLayer.Models
         public string TechnologyUsed { get; set; }
         public string ProjectFilePath { get; set; }
 
-        public Team Team { get; set; }
-        public string? AssignedDoctorId { get; set; }
-        [ForeignKey("AssignedDoctorId")]
-        public virtual Doctor? Doctor { get; set; }
+        public string? ImageUrl { get; set; }
+        public string? Category { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        public int? TeamId { get; set; }
+        [ForeignKey("TeamId")]
+        public virtual Team? Team { get; set; }
+
+        public string? AssignedSupervisorId { get; set; }
+        [ForeignKey("AssignedSupervisorId")]
+        public virtual Supervisor? Supervisor { get; set; }
 
         public string? AssignedAssistantId { get; set; }
         [ForeignKey("AssignedAssistantId")]
         public virtual Assistant? Assistant { get; set; }
-        public ICollection<Sponsor> Sponsors { get; set; }
-        public ICollection<Conversation> Conversations { get; set; }
     }
 }

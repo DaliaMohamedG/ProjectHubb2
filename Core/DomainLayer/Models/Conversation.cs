@@ -6,12 +6,20 @@ namespace DomainLayer.Models
     {
         public int Id { get; set; }
         public DateTime Start_Date { get; set; }
-        [ForeignKey("Sender")]
+
+        // ربط المحادثة بالمشروع
+        public int? ProjectId { get; set; }
+        [ForeignKey("ProjectId")]
+        public virtual Project? Project { get; set; }
+
         public string Sender_ID { get; set; }
-        public User Sender { get; set; }
-        [ForeignKey("TargetUser")]
+        [ForeignKey("Sender_ID")]
+        public virtual User Sender { get; set; }
+
         public string TargetUser_ID { get; set; }
-        public User TargetUser { get; set; }
-        public ICollection<Message> Messages { get; set; }
+        [ForeignKey("TargetUser_ID")]
+        public virtual User TargetUser { get; set; }
+
+        public virtual ICollection<Message> Messages { get; set; } = new List<Message>();
     }
 }

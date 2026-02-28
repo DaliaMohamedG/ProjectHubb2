@@ -4,12 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DomainLayer.Models
+namespace ServicesAbstractionLayer
 {
-    public enum PostStatus
+    internal class IProjectService
     {
-        Pending=0,
-        Accepted=1,
-        Rejected=2
     }
 }

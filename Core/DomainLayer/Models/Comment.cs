@@ -1,4 +1,5 @@
-﻿namespace DomainLayer.Models
+﻿using System.ComponentModel.DataAnnotations.Schema;
+namespace DomainLayer.Models
 {
     public class Comment
     {
@@ -6,6 +7,7 @@
         public string Content { get; set; } = null!;
 
         public int PostId { get; set; }
-        public Post Post { get; set; }
+        [ForeignKey("PostId")]
+        public virtual Post Post { get; set; }
     }
 }

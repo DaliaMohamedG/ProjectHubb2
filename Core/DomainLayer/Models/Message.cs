@@ -7,11 +7,13 @@ namespace DomainLayer.Models
         public int Id { get; set; }
         public string Content { get; set; }
         public DateTime Timestamp { get; set; }
-        [ForeignKey("Sender")]
-        public string Sender_ID { get; set; }
-        public User Sender { get; set; } = null!;
-        [ForeignKey("Conversation")]
+
+        public string UserID { get; set; }
+        [ForeignKey("UserID")]
+        public virtual User User { get; set; }
+
         public int Conversation_ID { get; set; }
-        public Conversation Conversation { get; set; }
+        [ForeignKey("Conversation_ID")]
+        public virtual Conversation Conversation { get; set; }
     }
 }

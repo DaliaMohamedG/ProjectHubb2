@@ -1,5 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 
 namespace DomainLayer.Models
 {
@@ -7,18 +6,20 @@ namespace DomainLayer.Models
     {
         public int Id { get; set; }
         public string Content { get; set; } = null!;
-        [StringLength(500)]
-        public PostStatus Status { get; set; }
-        [ForeignKey("Admin")]
-        public string AdminId { get; set; }
-        public Admin Admin { get; set; }
-        [ForeignKey("Community")]
-        public int CommunityId { get; set; }
-        public Community Community { get; set; }
-        [ForeignKey("User")]
-        public string UserId { get; set; }
-        public User User { get; set; }
-        public ICollection<Comment> Comments { get; set; }
 
+        public string UserId { get; set; }
+        [ForeignKey("UserId")]
+        public virtual User User { get; set; }
+
+        public int CommunityId { get; set; }
+        [ForeignKey("CommunityId")]
+        public virtual Community Community { get; set; }
+
+        // ميزة الخصوصية: لو نل يبقى عام، لو فيه قيمة يبقى للتيم ده بس
+        public int? TeamId { get; set; }
+        [ForeignKey("TeamId")]
+        public virtual Team? Team { get; set; }
+
+        public virtual ICollection<Comment> Comments { get; set; } = new List<Comment>();
     }
 }
