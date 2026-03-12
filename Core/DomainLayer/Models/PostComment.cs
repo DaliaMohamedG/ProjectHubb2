@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 namespace DomainLayer.Models
 {
-    public class Comment
+    public class PostComment
     {
         public int Id { get; set; }
         public string Content { get; set; } = null!;

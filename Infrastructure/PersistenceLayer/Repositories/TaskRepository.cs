@@ -1,38 +1,84 @@
-﻿namespace PersistenceLayer.Repositories
+﻿using DomainLayer.Contracts;
+using DomainLayer.Models;
+using Microsoft.EntityFrameworkCore;
+
+namespace PersistenceLayer.Repositories
 {
-    public class TaskRepository(ApplicationDbContext _context) //: ITaskRepository
+    public class TaskRepository : GenericRepository<TeamTasks>, ITaskRepository
     {
-        //public async Task<IEnumerable<TeamTasks>> GetAllAsync()
-        //     => await _context.Tasks
-        //    .Include(t => t.Student)
-        //    .ToListAsync();
+        private readonly ApplicationDbContext _context;
 
-        //public async Task<TeamTasks?> GetByIdAsync(int id)
-        //    => await _context.Tasks.FindAsync(id);
+        public TaskRepository(ApplicationDbContext context) : base(context)
+        {
+            _context = context;
+        }
 
-        //public Task<IEnumerable<TeamTasks>> GetTasksByProjectAsync(int projectId)
-        //{
-        //    throw new NotImplementedException();
-        //}
+        // ─────────────────────────────────────────────────────
+        // Get all tasks for a specific team
+        // ─────────────────────────────────────────────────────
+        public async Task<IEnumerable<TeamTasks>> GetTasksByTeamIdAsync(int teamId)
+        {
+            return await _context.Tasks
+                .Include(t => t.Student)        
+                .Include(t => t.Comments)       
+                    .ThenInclude(c => c.User)   
+                .Where(t => t.TeamId == teamId)
+                .OrderBy(t => t.Deadline)       
+                .ToListAsync();
+        }
 
-        //public async Task<IEnumerable<TeamTasks>> GetTasksByStudentAsync(int studentId)
-        //    => await _context.Tasks
-        //    .Where(t => t.StudentId == studentId)
-        //    .ToListAsync();
-        //public async Task AddAsync(TeamTasks task)
-        //    => await _context.AddAsync(task);
+        // ─────────────────────────────────────────────────────
+        // Get all tasks assigned to a specific student
+        // ─────────────────────────────────────────────────────
+        public async Task<IEnumerable<TeamTasks>> GetTasksByStudentIdAsync(string studentId)
+        {
+            return await _context.Tasks
+                .Include(t => t.Team)           
+                .Include(t => t.Comments)
+                    .ThenInclude(c => c.User)
+                .Where(t => t.AssignedStudentId == studentId)
+                .OrderBy(t => t.Deadline)
+                .ToListAsync();
+        }
 
-        //public void Delete(TeamTasks task)
-        //    => _context.Remove(task);
-        //public async TeamTasks SaveAsync()
-        //    => await _context.SaveChangesAsync();
+        // ─────────────────────────────────────────────────────
+        // Get all tasks across all teams of a supervisor
+        // ─────────────────────────────────────────────────────
+        public async Task<IEnumerable<TeamTasks>> GetTasksBySupervisorIdAsync(string supervisorId)
+        {
+            return await _context.Tasks
+                .Include(t => t.Team)           
+                .Include(t => t.Student)        
+                .Include(t => t.Comments)
+                    .ThenInclude(c => c.User)
+                .Where(t => t.Team.SupervisorId == supervisorId)
+                .OrderBy(t => t.Deadline)
+                .ToListAsync();
+        }
 
-        //public void UpdateStatus(TeamTasks task)
-        //    => _context.Tasks.Update(task);
+        // ─────────────────────────────────────────────────────
+        // Get all tasks where deadline passed and still not done
+        // ─────────────────────────────────────────────────────
+        public async Task<IEnumerable<TeamTasks>> GetOverdueTasksAsync()
+        {
+            return await _context.Tasks
+                .Include(t => t.Team)
+                .Include(t => t.Student)
+                .Where(t => t.Deadline < DateTime.UtcNow && t.Status != "Done")
+                .OrderBy(t => t.Deadline)
+                .ToListAsync();
+        }
 
-        //public async Task<IEnumerable<TeamTasks>> GetTasksByDoctorAsync(int doctorId)
-        //    => await _context.Tasks
-        //    .Where(t => t.DoctorID == doctorId)
-        //    .ToListAsync();
+        // ─────────────────────────────────────────────────────
+        // Get tasks for a team filtered by status
+        // ─────────────────────────────────────────────────────
+        public async Task<IEnumerable<TeamTasks>> GetTasksByTeamAndStatusAsync(int teamId, string status)
+        {
+            return await _context.Tasks
+                .Include(t => t.Student)
+                .Where(t => t.TeamId == teamId && t.Status == status)
+                .OrderBy(t => t.Deadline)
+                .ToListAsync();
+        }
     }
-}
+    }

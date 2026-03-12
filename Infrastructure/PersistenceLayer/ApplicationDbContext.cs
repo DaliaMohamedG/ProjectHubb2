@@ -12,7 +12,7 @@ namespace PersistenceLayer
         public DbSet<Supervisor> Supervisors { get; set; }
         public DbSet<Assistant> Assistants { get; set; }
         public DbSet<Post> Posts { get; set; }
-        public DbSet<Comment> Comments { get; set; }
+        public DbSet<PostComment> Comments { get; set; }
         public DbSet<Community> Communities { get; set; }
         public DbSet<Project> Projects { get; set; }
         public DbSet<Team> Teams { get; set; }
@@ -140,6 +140,21 @@ namespace PersistenceLayer
                       .WithMany(s => s.Projects)
                       .HasForeignKey(p => p.AssignedSupervisorId)
                       .OnDelete(DeleteBehavior.Restrict);
+            });
+            modelBuilder.Entity<TaskComment>(entity =>
+            {
+                // TaskComment belongs to a User
+                entity.HasOne(c => c.User)
+                      .WithMany()
+                      .HasForeignKey(c => c.UserId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                // TaskComment belongs to a Task
+                // If task is deleted → delete all its comments too
+                entity.HasOne(c => c.Task)
+                      .WithMany(t => t.Comments)
+                      .HasForeignKey(c => c.TaskId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
         }
     }
