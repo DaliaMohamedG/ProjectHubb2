@@ -18,6 +18,8 @@ namespace DomainLayer.Models
         public string? AssignedStudentId { get; set; }
         [ForeignKey("AssignedStudentId")]
         public virtual Student? Student { get; set; }
+
+        public virtual ICollection<TaskComment> Comments { get; set; } = new List<TaskComment>();
     }
 
 }

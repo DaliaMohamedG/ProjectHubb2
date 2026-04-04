@@ -62,7 +62,7 @@ namespace ServicesLayer
                 Content = p.Content,
                 ImageUrl = p.ImageUrl,
                 LikesCount = p.Likes.Count(),
-                IsLiked = p.Likes.Any(l => l.UserId == userId) 
+                IsLiked = p.Likes.Any(l => l.UserId == userId)
             }).ToList();
         }
         public async Task<bool> CreatePostAsync(PostCreateDto dto)
@@ -96,13 +96,13 @@ namespace ServicesLayer
             await _unitOfWork.Repository<Post>().AddAsync(post);
             return await _unitOfWork.CompleteAsync() > 0;
         }
-        public async Task<IEnumerable<Comment>> GetCommentsByPostIdAsync(int postId)
+        public async Task<IEnumerable<PostComment>> GetCommentsByPostIdAsync(int postId)
         {
-            return await _unitOfWork.Repository<Comment>().FindAsync(c => c.PostId == postId);
+            return await _unitOfWork.Repository<PostComment>().FindAsync(c => c.PostId == postId);
         }
         public async Task<bool> AddCommentAsync(CommentCreateDto dto)
         {
-            var comment = new Comment
+            var comment = new PostComment
             {
                 Text = dto.Text,
                 PostId = dto.PostId,
@@ -110,7 +110,7 @@ namespace ServicesLayer
                 CreatedAt = DateTime.Now
             };
 
-            await _unitOfWork.Repository<Comment>().AddAsync(comment);
+            await _unitOfWork.Repository<PostComment>().AddAsync(comment);
             return await _unitOfWork.CompleteAsync() > 0;
         }
         public async Task<bool> ToggleLikeAsync(int postId, string userId)

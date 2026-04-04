@@ -18,8 +18,7 @@ namespace DomainLayer.Models
         public int? TeamId { get; set; }
         [ForeignKey("TeamId")]
         public virtual Team? Team { get; set; }
-
-        public virtual ICollection<Comment> Comments { get; set; } = new List<Comment>();
         public virtual ICollection<Like> Likes { get; set; } = new HashSet<Like>();
+        public virtual ICollection<PostComment> Comments { get; set; } = new List<PostComment>();
     }
 }

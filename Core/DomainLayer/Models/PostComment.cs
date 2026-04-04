@@ -2,7 +2,7 @@
 
 namespace DomainLayer.Models
 {
-    public class Comment
+    public class PostComment
     {
         public int Id { get; set; }
         public string Text { get; set; }

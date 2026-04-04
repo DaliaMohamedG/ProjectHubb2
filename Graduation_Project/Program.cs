@@ -29,6 +29,9 @@ namespace Graduation_Project
             builder.Services.AddScoped<IProjectService, ProjectService>();
             builder.Services.AddScoped<ICommunityService, CommunityService>();
             builder.Services.AddScoped<ITeamService, TeamService>();
+            builder.Services.AddScoped<ServicesAbstractionLayer.IAuthService, ServicesLayer.AuthService>();
+            builder.Services.AddScoped<ITaskRepository, TaskRepository>();
+            builder.Services.AddScoped<ITaskService, TaskService>();
 
             var app = builder.Build();
 
