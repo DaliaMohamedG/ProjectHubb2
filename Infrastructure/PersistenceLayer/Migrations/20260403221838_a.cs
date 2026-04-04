@@ -36,7 +36,8 @@ namespace PersistenceLayer.Migrations
                     Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Instituation = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Faculty = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Profile_Image = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    Profile_Image = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Role = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -102,16 +103,24 @@ namespace PersistenceLayer.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     TeamName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ProjectName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    SupervisorId = table.Column<string>(type: "nvarchar(450)", nullable: false)
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    SupervisorId = table.Column<string>(type: "nvarchar(450)", nullable: true),
+                    StudentId = table.Column<string>(type: "nvarchar(450)", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Teams", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Teams_Supervisors_SupervisorId",
+                        name: "FK_Teams_Students_StudentId",
+                        column: x => x.StudentId,
+                        principalTable: "Students",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Teams_Users_SupervisorId",
                         column: x => x.SupervisorId,
-                        principalTable: "Supervisors",
+                        principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
@@ -123,30 +132,27 @@ namespace PersistenceLayer.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Content = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ImageUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Visibility = table.Column<string>(type: "nvarchar(max)", nullable: false, defaultValue: "Public"),
                     UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    CommunityId = table.Column<int>(type: "int", nullable: false),
                     TeamId = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Posts", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Posts_Communities_CommunityId",
-                        column: x => x.CommunityId,
-                        principalTable: "Communities",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
                         name: "FK_Posts_Teams_TeamId",
                         column: x => x.TeamId,
                         principalTable: "Teams",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
                         name: "FK_Posts_Users_UserId",
                         column: x => x.UserId,
                         principalTable: "Users",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -162,9 +168,10 @@ namespace PersistenceLayer.Migrations
                     ImageUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Category = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    TeamId = table.Column<int>(type: "int", nullable: true),
+                    StudentId = table.Column<string>(type: "nvarchar(450)", nullable: true),
                     AssignedSupervisorId = table.Column<string>(type: "nvarchar(450)", nullable: true),
-                    AssignedAssistantId = table.Column<string>(type: "nvarchar(450)", nullable: true)
+                    AssignedAssistantId = table.Column<string>(type: "nvarchar(450)", nullable: true),
+                    TeamId = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -175,6 +182,12 @@ namespace PersistenceLayer.Migrations
                         principalTable: "Assistants",
                         principalColumn: "Id");
                     table.ForeignKey(
+                        name: "FK_Projects_Students_StudentId",
+                        column: x => x.StudentId,
+                        principalTable: "Students",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
                         name: "FK_Projects_Supervisors_AssignedSupervisorId",
                         column: x => x.AssignedSupervisorId,
                         principalTable: "Supervisors",
@@ -183,29 +196,6 @@ namespace PersistenceLayer.Migrations
                     table.ForeignKey(
                         name: "FK_Projects_Teams_TeamId",
                         column: x => x.TeamId,
-                        principalTable: "Teams",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.SetNull);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "StudentTeam",
-                columns: table => new
-                {
-                    StudentsId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    TeamsId = table.Column<int>(type: "int", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_StudentTeam", x => new { x.StudentsId, x.TeamsId });
-                    table.ForeignKey(
-                        name: "FK_StudentTeam_Students_StudentsId",
-                        column: x => x.StudentsId,
-                        principalTable: "Students",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_StudentTeam_Teams_TeamsId",
-                        column: x => x.TeamsId,
                         principalTable: "Teams",
                         principalColumn: "Id");
                 });
@@ -253,13 +243,39 @@ namespace PersistenceLayer.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "TeamMembers",
+                columns: table => new
+                {
+                    TeamId = table.Column<int>(type: "int", nullable: false),
+                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    RoleInTeam = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TeamMembers", x => new { x.TeamId, x.UserId });
+                    table.ForeignKey(
+                        name: "FK_TeamMembers_Teams_TeamId",
+                        column: x => x.TeamId,
+                        principalTable: "Teams",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_TeamMembers_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Comments",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Content = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    PostId = table.Column<int>(type: "int", nullable: false)
+                    Text = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    PostId = table.Column<int>(type: "int", nullable: false),
+                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -270,6 +286,34 @@ namespace PersistenceLayer.Migrations
                         principalTable: "Posts",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Comments_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Likes",
+                columns: table => new
+                {
+                    PostId = table.Column<int>(type: "int", nullable: false),
+                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Likes", x => new { x.UserId, x.PostId });
+                    table.ForeignKey(
+                        name: "FK_Likes_Posts_PostId",
+                        column: x => x.PostId,
+                        principalTable: "Posts",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Likes_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -340,6 +384,11 @@ namespace PersistenceLayer.Migrations
                 column: "PostId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Comments_UserId",
+                table: "Comments",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Conversations_ProjectId",
                 table: "Conversations",
                 column: "ProjectId");
@@ -355,6 +404,11 @@ namespace PersistenceLayer.Migrations
                 column: "TargetUser_ID");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Likes_PostId",
+                table: "Likes",
+                column: "PostId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Messages_Conversation_ID",
                 table: "Messages",
                 column: "Conversation_ID");
@@ -363,11 +417,6 @@ namespace PersistenceLayer.Migrations
                 name: "IX_Messages_UserID",
                 table: "Messages",
                 column: "UserID");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Posts_CommunityId",
-                table: "Posts",
-                column: "CommunityId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Posts_TeamId",
@@ -390,16 +439,14 @@ namespace PersistenceLayer.Migrations
                 column: "AssignedSupervisorId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Projects_TeamId",
+                name: "IX_Projects_StudentId",
                 table: "Projects",
-                column: "TeamId",
-                unique: true,
-                filter: "[TeamId] IS NOT NULL");
+                column: "StudentId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_StudentTeam_TeamsId",
-                table: "StudentTeam",
-                column: "TeamsId");
+                name: "IX_Projects_TeamId",
+                table: "Projects",
+                column: "TeamId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Tasks_AssignedStudentId",
@@ -422,6 +469,16 @@ namespace PersistenceLayer.Migrations
                 column: "TeamId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_TeamMembers_UserId",
+                table: "TeamMembers",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Teams_StudentId",
+                table: "Teams",
+                column: "StudentId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Teams_SupervisorId",
                 table: "Teams",
                 column: "SupervisorId");
@@ -434,13 +491,19 @@ namespace PersistenceLayer.Migrations
                 name: "Comments");
 
             migrationBuilder.DropTable(
+                name: "Communities");
+
+            migrationBuilder.DropTable(
+                name: "Likes");
+
+            migrationBuilder.DropTable(
                 name: "Messages");
 
             migrationBuilder.DropTable(
-                name: "StudentTeam");
+                name: "Tasks");
 
             migrationBuilder.DropTable(
-                name: "Tasks");
+                name: "TeamMembers");
 
             migrationBuilder.DropTable(
                 name: "Posts");
@@ -449,22 +512,19 @@ namespace PersistenceLayer.Migrations
                 name: "Conversations");
 
             migrationBuilder.DropTable(
-                name: "Students");
-
-            migrationBuilder.DropTable(
-                name: "Communities");
-
-            migrationBuilder.DropTable(
                 name: "Projects");
 
             migrationBuilder.DropTable(
                 name: "Assistants");
 
             migrationBuilder.DropTable(
+                name: "Supervisors");
+
+            migrationBuilder.DropTable(
                 name: "Teams");
 
             migrationBuilder.DropTable(
-                name: "Supervisors");
+                name: "Students");
 
             migrationBuilder.DropTable(
                 name: "Users");

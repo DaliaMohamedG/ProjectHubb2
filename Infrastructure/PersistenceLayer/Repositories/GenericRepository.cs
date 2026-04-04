@@ -20,5 +20,23 @@ namespace PersistenceLayer.Repositories
         {
             return await _context.Set<T>().Where(predicate).ToListAsync();
         }
+        public async Task<T> GetEntityWithSpec(Expression<Func<T, bool>> predicate, params Expression<Func<T, object>>[] includes)
+        {
+            IQueryable<T> query = _context.Set<T>();
+            if (includes != null)
+            {
+                query = includes.Aggregate(query, (current, include) => current.Include(include));
+            }
+            return await query.FirstOrDefaultAsync(predicate);
+        }
+        public async Task<IEnumerable<T>> ListWithSpec(Expression<Func<T, bool>> predicate, params Expression<Func<T, object>>[] includes)
+        {
+            IQueryable<T> query = _context.Set<T>();
+            if (includes != null)
+            {
+                query = includes.Aggregate(query, (current, include) => current.Include(include));
+            }
+            return await query.Where(predicate).ToListAsync();
+        }
     }
 }

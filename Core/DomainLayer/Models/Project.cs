@@ -14,9 +14,9 @@ namespace DomainLayer.Models
         public string? Category { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
-        public int? TeamId { get; set; }
-        [ForeignKey("TeamId")]
-        public virtual Team? Team { get; set; }
+        public string? StudentId { get; set; }
+        [ForeignKey("StudentId")]
+        public virtual Student? Student { get; set; }
 
         public string? AssignedSupervisorId { get; set; }
         [ForeignKey("AssignedSupervisorId")]
@@ -25,5 +25,10 @@ namespace DomainLayer.Models
         public string? AssignedAssistantId { get; set; }
         [ForeignKey("AssignedAssistantId")]
         public virtual Assistant? Assistant { get; set; }
+
+        public int? TeamId { get; set; }
+        [ForeignKey("TeamId")]
+        public virtual Team? Team { get; set; }
+
     }
 }

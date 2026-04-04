@@ -25,7 +25,10 @@ namespace Graduation_Project
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
             builder.Services.AddScoped<IConversationService, ConversationService>();
-            builder.Services.AddScoped<ServicesAbstractionLayer.IAuthService, ServicesLayer.AuthService>();
+            builder.Services.AddScoped<IAuthService, AuthService>();
+            builder.Services.AddScoped<IProjectService, ProjectService>();
+            builder.Services.AddScoped<ICommunityService, CommunityService>();
+            builder.Services.AddScoped<ITeamService, TeamService>();
 
             var app = builder.Build();
 
@@ -35,7 +38,7 @@ namespace Graduation_Project
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
-
+            app.UseStaticFiles();
             app.UseHttpsRedirection();
 
             app.UseAuthorization();

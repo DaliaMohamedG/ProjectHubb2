@@ -1,0 +1,163 @@
+Msg 1033, Level 15, State 1, Line 35
+The ORDER BY clause is invalid in views, inline functions, derived tables, subqueries, and common table expressions, unless TOP, OFFSET or FOR XML is also specified.
+-----------------------------------------------------------------------------
+stored procedure
+============
+CREATE PROCEDURE ProcedureName 
+    @Param1 DataType,
+    @Param2 DataType = DefaultValue  -- باراميتر اختياري
+AS
+BEGIN
+    -- select statement
+END
+ 
+--EXAMPLE WITHOUT PARAMETER
+CREATE PROCEDURE GetAllEmployees
+AS
+BEGIN
+    SELECT * FROM Employee;
+END;
+
+--to run procedure
+exec    GetAllEmployees
+
+--EXAMPLE WITH PARAMETER
+CREATE PROCEDURE GetEmployeeById
+    @EmpID INT
+AS
+BEGIN
+    SELECT * FROM Employee WHERE ID = @EmpID;
+END
+--to run procedure
+EXEC GetEmployeeById 5;
+
+----EXAMPLE WITH PARAMETER OUTPUT
+create or alter procedure GetEmployeeName
+@empid int,
+@empname varchar(100) OUTPUT
+as
+begin
+select @empname=fname+' '+lname 
+from employee
+where empid=@empid 
+end
+
+declare @name varchar(100)
+exec GetEmployeeName 5,@name output
+print @name
+
+DROP PROCEDURE ProcedureName;
+
+🌟 ملاحظات مهمة
+🔹 تقدر تستخدم الشروط (IF, CASE) واللوبات (WHILE).
+🔹 ممكن تستدعي Procedures أخرى أو Functions من جوه Procedure.
+🔹 تقدر تضيف ترانزكشن (BEGIN TRAN, COMMIT, ROLLBACK).
+-----------------------------------------------------------------------------
+--12. Write a query that display books id which is not found in floor num = 1 and shelf-code = A1.
+select id 
+from book join Shelf on Shelf_code=Code 
+where Shelf_code!='a1' and Floor_num!=1
+
+select id
+from Book
+where id not in(
+select Id 
+from book join Shelf on Shelf_code=Code 
+where Shelf_code='a1' and Floor_num=1
+)
+----------------------------------------------------------------------------------------------
+--13.Write a query that displays the floor number , Number of Blocks and number of employees working on that floor.
+select Floor_no, Num_blocks, COUNT(id) over (partition by floor_no) [number of employees working on the floor]
+from Employee join Floor on Number=Floor_no
+
+SELECT Floor_no, f.Num_blocks, COUNT(e.id) AS [number of employees working on the floor]
+FROM Floor f
+LEFT JOIN Employee e ON Floor_no = e.Floor_no
+GROUP BY Floor_no, f.Num_blocks;
+----------------------------------------------------------------------------------------------
+trigger
+====
+ بيشتغل تلقائيًا في قاعدة البيانات عند حدوث حدث معين على جدول
+📝 متى بيشتغل؟
+✅ لما يحصل:
+
+AFTER INSERT → بعد ما صف جديد يضاف للجدول.
+AFTER UPDATE → بعد ما صف يتعدل.
+AFTER DELETE → بعد ما صف يتمسح.
+INSTEAD OF → يمنع الحدث الأصلي ويشغل الكود بدلًا منه (مثلاً بدل ما يتم الحذف ينفذ حاجة تانية).
+
+⚡ الغرض من الـ Trigger
+التحقق من البيانات قبل أو بعد التعديل.
+تسجيل التغييرات في جدول آخر (audit).
+تنفيذ عمليات إضافية تلقائية عند التعديل.
+
+create table logtable(
+msg varchar(100),
+createdate datetime
+)
+
+create or alter trigger trg_AfterInsertEmployee
+on employee
+after insert
+as
+begin
+insert into logtable
+select concat('New employee added: ', fname, lname), getdate()
+from inserted
+end
+
+بيقرأ من inserted و deleted عشان يعرف الصفوف المتأثرة.
+inserted	جدول وهمي فيه البيانات المضافة (في insert/update)
+deleted	جدول وهمي فيه البيانات المحذوفة أو قبل التعديل (في delete/update)
+
+ممكن تكتب تريجر لأكثر من حدث (insert + update مثلًا)
+
+⚡ الفكرة:
+لو كان فيه صفوف في inserted ومفيش في deleted → ده Insert.
+لو كان فيه في الاتنين → ده Update.
+لو كان بس في deleted → ده Delete (لو ضفته في التريجر).
+
+create or alter trigger trg_InsertUpdate
+on employee
+after insert,update
+as
+begin
+
+if exist (select 1 from inserted) and not exists (select 1 from deleted)
+ BEGIN
+        INSERT INTO LogTable (Message, CreatedAt)
+        SELECT CONCAT('New employee added: ', Fname, ' ', Lname), GETDATE()
+        FROM inserted
+    END
+
+IF EXISTS (SELECT 1 FROM inserted) AND EXISTS (SELECT 1 FROM deleted)
+    BEGIN
+        INSERT INTO LogTable (Message, CreatedAt)
+        SELECT CONCAT('Employee updated: ', i.Fname, ' ', i.Lname), GETDATE()
+        FROM inserted i
+    END
+
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

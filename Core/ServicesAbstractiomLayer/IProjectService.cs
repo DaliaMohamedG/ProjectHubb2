@@ -1,12 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using DomainLayer.DTOs;
+using DomainLayer.Models;
 
 namespace ServicesAbstractionLayer
 {
-    internal class IProjectService
+    public interface IProjectService
     {
+        Task<IEnumerable<Project>> GetAllProjectsAsync();
+        Task<bool> UploadStudentProjectAsync(StudentProjectCreateDto dto);
     }
 }

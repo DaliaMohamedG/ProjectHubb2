@@ -13,9 +13,11 @@ namespace PersistenceLayer
         public DbSet<Assistant> Assistants { get; set; }
         public DbSet<Post> Posts { get; set; }
         public DbSet<Comment> Comments { get; set; }
+        public DbSet<Like> Likes { get; set; }
         public DbSet<Community> Communities { get; set; }
         public DbSet<Project> Projects { get; set; }
         public DbSet<Team> Teams { get; set; }
+        public DbSet<TeamMember> TeamMembers { get; set; }
         public DbSet<Message> Messages { get; set; }
         public DbSet<Conversation> Conversations { get; set; }
         public DbSet<TeamTasks> Tasks { get; set; }
@@ -46,7 +48,7 @@ namespace PersistenceLayer
                 entity.HasOne(c => c.Project)
                       .WithMany()
                       .HasForeignKey(c => c.ProjectId)
-                      .OnDelete(DeleteBehavior.SetNull); // لو المشروع اتحذف المحادثة تفضل
+                      .OnDelete(DeleteBehavior.SetNull);
             });
 
             // 3.  (Message)
@@ -77,68 +79,88 @@ namespace PersistenceLayer
                       .OnDelete(DeleteBehavior.Restrict);
             });
 
-            // 5. (Post)
-            modelBuilder.Entity<Post>(entity =>
+            // 5.like
+            modelBuilder.Entity<Like>(entity =>
             {
-                entity.HasOne(p => p.User)
-                      .WithMany(u => u.Posts)
-                      .HasForeignKey(p => p.UserId)
-                      .OnDelete(DeleteBehavior.Restrict);
+                entity.HasKey(l => new { l.UserId, l.PostId });
 
-                entity.HasOne(p => p.Community)
-                      .WithMany()
-                      .HasForeignKey(p => p.CommunityId)
+                entity.HasOne(l => l.Post)
+                      .WithMany(p => p.Likes)
+                      .HasForeignKey(l => l.PostId)
                       .OnDelete(DeleteBehavior.Cascade);
 
-                // ميزة الخصوصية :البوست تابع لتيم معين
-                entity.HasOne(p => p.Team)
+                entity.HasOne(l => l.User)
                       .WithMany()
-                      .HasForeignKey(p => p.TeamId)
+                      .HasForeignKey(l => l.UserId)
                       .OnDelete(DeleteBehavior.NoAction);
             });
 
-            // 6
-            modelBuilder.Entity<Team>(entity =>
-                entity.HasOne(t => t.Supervisor)
-                      .WithMany()
-                      .HasForeignKey(t => t.SupervisorId)
-                      .OnDelete(DeleteBehavior.Restrict));
+            // 6.Post
+            modelBuilder.Entity<Post>(entity =>
+            {
+                entity.Property(p => p.Visibility).HasDefaultValue("Public");
 
-            // 7
-            modelBuilder.Entity<Team>()
-                .HasMany(t => t.Students)
-                .WithMany(s => s.Teams)
-                .UsingEntity<Dictionary<string, object>>(
-                    "StudentTeam",
-                    j => j.HasOne<Student>().WithMany().HasForeignKey("StudentsId").OnDelete(DeleteBehavior.NoAction),
-                    j => j.HasOne<Team>().WithMany().HasForeignKey("TeamsId").OnDelete(DeleteBehavior.NoAction)
-                );
-            modelBuilder.Entity<Team>(entity =>
-            {
-                entity.HasOne(t => t.Supervisor)
-                      .WithMany()
-                      .HasForeignKey(t => t.SupervisorId)
-                      .OnDelete(DeleteBehavior.Restrict);
-            });
+                entity.HasOne(p => p.User)
+                      .WithMany(u => u.Posts)
+                      .HasForeignKey(p => p.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
 
-            // 8
-            modelBuilder.Entity<Project>(entity =>
-            {
-                entity.HasOne(p => p.Supervisor)
-                      .WithMany(s => s.Projects)
-                      .HasForeignKey(p => p.AssignedSupervisorId)
-                      .OnDelete(DeleteBehavior.Restrict);
-            });
-            modelBuilder.Entity<Project>(entity =>
-            {
                 entity.HasOne(p => p.Team)
-                      .WithOne()
-                      .HasForeignKey<Project>(p => p.TeamId)
+                      .WithMany()
+                      .HasForeignKey(p => p.TeamId)
                       .OnDelete(DeleteBehavior.SetNull);
+            });
 
+            // 7.Comment
+            modelBuilder.Entity<Comment>(entity =>
+            {
+                entity.HasOne(c => c.Post)
+                      .WithMany(p => p.Comments)
+                      .HasForeignKey(c => c.PostId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(c => c.User)
+                      .WithMany()
+                      .HasForeignKey(c => c.UserId)
+                      .OnDelete(DeleteBehavior.NoAction);
+            });
+
+            // 8.project
+            modelBuilder.Entity<Project>(entity =>
+            {
                 entity.HasOne(p => p.Supervisor)
                       .WithMany(s => s.Projects)
                       .HasForeignKey(p => p.AssignedSupervisorId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(p => p.Student)
+                    .WithMany()
+                    .HasForeignKey(p => p.StudentId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            //9. team member
+            modelBuilder.Entity<TeamMember>(entity =>
+            {
+                entity.HasKey(tm => new { tm.TeamId, tm.UserId });
+
+                entity.HasOne(tm => tm.Team)
+                      .WithMany(t => t.Members)
+                      .HasForeignKey(tm => tm.TeamId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(tm => tm.User)
+                      .WithMany()
+                      .HasForeignKey(tm => tm.UserId)
+                      .OnDelete(DeleteBehavior.NoAction);
+            });
+
+            //10.team
+            modelBuilder.Entity<Team>(entity =>
+            {
+                entity.HasOne(t => t.Supervisor)
+                      .WithMany()
+                      .HasForeignKey(t => t.SupervisorId)
                       .OnDelete(DeleteBehavior.Restrict);
             });
         }

@@ -8,7 +8,7 @@
         public string Instituation { get; set; } = null!;
         public string? Faculty { get; set; }
         public string? Profile_Image { get; set; }
-
+        public string? Role { get; set; }
         public virtual ICollection<Post> Posts { get; set; } = new List<Post>();
         public virtual ICollection<Message> Messages { get; set; } = new List<Message>();
     }
