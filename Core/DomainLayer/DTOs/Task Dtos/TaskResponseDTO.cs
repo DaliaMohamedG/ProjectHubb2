@@ -8,16 +8,16 @@ namespace DomainLayer.DTOs.Task_Dtos
 {
     public class TaskResponseDTO
     {
-        public int Id { get; set; }
-        public string Details { get; set; } = null!;
-        public DateTime Deadline { get; set; }
-        public string Status { get; set; } = null!;
-        public string? SolutionFile { get; set; }
-        public int TeamId { get; set; }
-        public string TeamName { get; set; } = null!;
-        public string? AssignedStudentId { get; set; }
-        public string? AssignedStudentName { get; set; }
-        public List<TaskCommentResponseDTO> Comments { get; set; } = new();
-        public bool IsOverdue => Status != "Done" && DateTime.UtcNow > Deadline;
+        public string Id { get; set; } = null!;
+        public string Title { get; set; } = null!;
+        public string? Description { get; set; }
+        public string From { get; set; } = null!;              // who assigned: "Supervisor"
+        public DateTime DueDate { get; set; }
+        public string TeamId { get; set; } = null!;
+        public string SupervisorId { get; set; } = null!;
+        public List<string> AssignedTo { get; set; } = new(); // list of student IDs
+        public bool IsCompleted { get; set; }                  // true = Done, false = Pending
+        public List<AttachmentDTO> SupervisorAttachments { get; set; } = new();
+        public List<AttachmentDTO> StudentAttachments { get; set; } = new();
     }
 }

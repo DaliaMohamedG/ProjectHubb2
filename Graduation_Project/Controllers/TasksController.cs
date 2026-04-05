@@ -30,7 +30,7 @@ namespace Graduation_Project.Controllers
 
         // Get full task details (Task Details screen)
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetTask(int id)
+        public async Task<IActionResult> GetTask(string id)
         {
             var task = await _taskService.GetTaskByIdAsync(id);
 
@@ -96,7 +96,7 @@ namespace Graduation_Project.Controllers
         // Supervisor updates a task
         [HttpPut("{id}")]
         //[Authorize(Roles = "Supervisor")]
-        public async Task<IActionResult> UpdateTask(int id, [FromBody] UpdateTaskDTO dto)
+        public async Task<IActionResult> UpdateTask(string id, [FromBody] UpdateTaskDTO dto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -112,7 +112,7 @@ namespace Graduation_Project.Controllers
         // Supervisor deletes a task
         [HttpDelete("{id}")]
         //[Authorize(Roles = "Supervisor")]
-        public async Task<IActionResult> DeleteTask(int id)
+        public async Task<IActionResult> DeleteTask(string id)
         {
             var success = await _taskService.DeleteTaskAsync(id, CurrentUserId);
 
@@ -125,7 +125,7 @@ namespace Graduation_Project.Controllers
         // Student submits their solution (Submit Task screen)
         [HttpPost("{id}/submit")]
         //[Authorize(Roles = "Student")]
-        public async Task<IActionResult> SubmitTask(int id, [FromBody] SubmitTaskDTO dto)
+        public async Task<IActionResult> SubmitTask(string id, [FromBody] SubmitTaskDTO dto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -142,7 +142,7 @@ namespace Graduation_Project.Controllers
         // Updates task status to "Done" or "NeedsRevision"
         [HttpPost("{id}/feedback")]
         //[Authorize(Roles = "Supervisor")]
-        public async Task<IActionResult> GiveFeedback(int id, [FromBody] TaskFeedbackDTO dto)
+        public async Task<IActionResult> GiveFeedback(string id, [FromBody] TaskFeedbackDTO dto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -162,7 +162,7 @@ namespace Graduation_Project.Controllers
 
         // Any user adds a comment on a task (Task Details screen)
         [HttpPost("{id}/comments")]
-        public async Task<IActionResult> AddComment(int id, [FromBody] AddTaskCommentDTO dto)
+        public async Task<IActionResult> AddComment(string id, [FromBody] AddTaskCommentDTO dto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);

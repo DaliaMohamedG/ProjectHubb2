@@ -27,6 +27,6 @@ namespace DomainLayer.Contracts
 
         // Get tasks filtered by status ("Pending" or "Done")
         // Used in: "In Progress" and "Completed" sections in UI
-        Task<IEnumerable<TeamTasks>> GetTasksByTeamAndStatusAsync(int teamId, string status);
+        Task<IEnumerable<TeamTasks>> GetTasksByTeamAndStatusAsync(int teamId, bool status);
     }
 }

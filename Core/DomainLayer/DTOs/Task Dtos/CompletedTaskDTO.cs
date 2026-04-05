@@ -6,13 +6,12 @@ using System.Threading.Tasks;
 
 namespace DomainLayer.DTOs.Task_Dtos
 {
-    public class TaskSummaryDTO
+    public class CompletedTaskDTO
     {
         public string Id { get; set; } = null!;
         public string Title { get; set; } = null!;
-        public DateTime DueDate { get; set; }
-        public bool IsCompleted { get; set; }
-        public string TeamId { get; set; } = null!;
-        public string? AssignedTo { get; set; }   // name of assigned student
+        public DateTime CompletedDate { get; set; }
+        public string Status { get; set; } = null!;   // "Approved" or "NeedsRevision"
+        public bool HasFeedback { get; set; } = true;
     }
 }

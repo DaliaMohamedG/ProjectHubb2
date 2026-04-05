@@ -8,8 +8,9 @@ namespace DomainLayer.DTOs.Task_Dtos
 {
     public class UpdateTaskDTO
     {
-        public string? Details { get; set; }
-        public DateTime? Deadline { get; set; }
-        public string? AssignedStudentId { get; set; }
+        public string? Title { get; set; }
+        public string? Description { get; set; }
+        public DateTime? DueDate { get; set; }
+        public List<string>? AssignedTo { get; set; }
     }
 }

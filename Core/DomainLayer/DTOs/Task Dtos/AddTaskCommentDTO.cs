@@ -8,6 +8,6 @@ namespace DomainLayer.DTOs.Task_Dtos
 {
     public class AddTaskCommentDTO
     {
-        public string Content { get; set; } = null!;
+        public string Text { get; set; } = null!;
     }
 }

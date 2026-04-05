@@ -15,7 +15,7 @@ namespace DomainLayer.Models
         [ForeignKey("UserId")]
         public virtual User User { get; set; } = null!;
 
-        public int TaskId { get; set; }
+        public string TaskId { get; set; }
         [ForeignKey("TaskId")]
         public virtual TeamTasks Task { get; set; } = null!;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

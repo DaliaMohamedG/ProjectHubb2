@@ -15,21 +15,21 @@ namespace ServicesAbstractionLayer
         Task<TaskResponseDTO> CreateTaskAsync(string supervisorId, CreateTaskDTO dto);
 
         // Supervisor updates a task
-        Task<TaskResponseDTO?> UpdateTaskAsync(int taskId, string supervisorId, UpdateTaskDTO dto);
+        Task<TaskResponseDTO?> UpdateTaskAsync(string taskId, string supervisorId, UpdateTaskDTO dto);
 
         // Supervisor deletes a task
-        Task<bool> DeleteTaskAsync(int taskId, string supervisorId);
+        Task<bool> DeleteTaskAsync(string taskId, string supervisorId);
 
         // Student submits their work
-        Task<bool> SubmitTaskAsync(int taskId, string studentId, SubmitTaskDTO dto);
+        Task<bool> SubmitTaskAsync(string taskId, string studentId, SubmitTaskDTO dto);
 
         // Supervisor gives feedback (approves or rejects)
-        Task<bool> GiveFeedbackAsync(int taskId, string supervisorId, TaskFeedbackDTO dto);
+        Task<bool> GiveFeedbackAsync(string taskId, string supervisorId, TaskFeedbackDTO dto);
 
         // ── QUERY OPERATIONS ─────────────────────────────────
 
         // Get one task by its ID (Task Details screen)
-        Task<TaskResponseDTO?> GetTaskByIdAsync(int taskId);
+        Task<TaskResponseDTO?> GetTaskByIdAsync(string taskId);
 
         // Get all tasks for a team (Team Tasks screen - Supervisor)
         Task<IEnumerable<TaskSummaryDTO>> GetTasksByTeamAsync(int teamId);
@@ -43,7 +43,7 @@ namespace ServicesAbstractionLayer
         // ── COMMENT OPERATIONS ───────────────────────────────
 
         // Anyone adds a comment on a task
-        Task<TaskCommentResponseDTO> AddCommentAsync(int taskId, string userId, AddTaskCommentDTO dto);
+        Task<TaskCommentResponseDTO> AddCommentAsync(string taskId, string userId, AddTaskCommentDTO dto);
 
         // User deletes their own comment
         Task<bool> DeleteCommentAsync(int commentId, string userId);

@@ -8,6 +8,6 @@ namespace DomainLayer.DTOs.Task_Dtos
 {
     public class SubmitTaskDTO
     {
-        public string SolutionFile { get; set; } = null!;
+        public List<AttachmentDTO> StudentAttachments { get; set; } = new();
     }
 }

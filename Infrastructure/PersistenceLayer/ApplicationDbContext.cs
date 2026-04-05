@@ -21,6 +21,8 @@ namespace PersistenceLayer
         public DbSet<Message> Messages { get; set; }
         public DbSet<Conversation> Conversations { get; set; }
         public DbSet<TeamTasks> Tasks { get; set; }
+        public DbSet<TaskAssignment> TaskAssignments { get; set; }
+        public DbSet<TaskAttachment> TaskAttachments { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -66,17 +68,30 @@ namespace PersistenceLayer
             });
 
             // 4.  (TeamTasks)
-            modelBuilder.Entity<TeamTasks>(entity =>
+            // TaskAssignment — bridge between task and multiple students
+            modelBuilder.Entity<TaskAssignment>(entity =>
             {
-                entity.HasOne(t => t.Team)
-                      .WithMany(tm => tm.Tasks)
-                      .HasForeignKey(t => t.TeamId)
+                // If task deleted → delete all its assignments
+                entity.HasOne(a => a.Task)
+                      .WithMany(t => t.Assignments)
+                      .HasForeignKey(a => a.TaskId)
                       .OnDelete(DeleteBehavior.Cascade);
 
-                entity.HasOne(t => t.Student)
-                      .WithMany(s => s.Tasks)
-                      .HasForeignKey(t => t.AssignedStudentId)
+                // If student deleted → don't delete the assignment
+                entity.HasOne(a => a.Student)
+                      .WithMany()
+                      .HasForeignKey(a => a.StudentId)
                       .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // TaskAttachment — files uploaded by supervisor or student
+            modelBuilder.Entity<TaskAttachment>(entity =>
+            {
+                // If task deleted → delete all its attachments
+                entity.HasOne(a => a.Task)
+                      .WithMany(t => t.Attachments)
+                      .HasForeignKey(a => a.TaskId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
 
             // 5.like

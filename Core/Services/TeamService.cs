@@ -62,17 +62,19 @@ namespace ServicesLayer
             return allTeams.Select(t => new TeamResponseDto
             {
                 Id = t.Id,
-                TeamName = t.TeamName,
+                Name = t.TeamName,
                 ProjectName = t.ProjectName,
                 CreatedAt = t.CreatedAt,
                 SupervisorId = t.SupervisorId,
 
-                Members = t.Members?.Select(m => new UserDto
+                Members = t.Members?.Select(m => new TeamMemberDto
                 {
                     Id = m.UserId,
-                    UserName = m.User?.FullName,
-                    ProfileImage = m.User?.Profile_Image
-                }).ToList() ?? new List<UserDto>()
+                    Name = m.User?.FullName,       // Flutter uses "name" not "UserName"
+                    Role = m.RoleInTeam,                  // e.g. "Student", "Assistant"
+                    Position = m.Position,          // e.g. "Flutter Developer"
+                    PhotoUrl = m.User?.Profile_Image // Flutter uses "photoUrl" not "ProfileImage"
+                }).ToList() ?? new List<TeamMemberDto>()
             });
         }
         public async Task<bool> DeleteTeamAsync(int teamId)

@@ -36,10 +36,10 @@ namespace ServicesLayer
             var team = teams.First();
 
             // Step 2: التصليح هنا
-            if (dto.AssignedStudentId != null)
+            if (dto.AssignedTo != null && dto.AssignedTo.Any())
             {
                 // بنلف جوه الـ Members ونشوف هل فيه حد الـ UserId بتاعه بيساوي الـ Id اللي مبعوت
-                bool studentInTeam = team.Members.Any(m => m.UserId == dto.AssignedStudentId);
+                bool studentInTeam = dto.AssignedTo.All(studentId => team.Members.Any(m => m.UserId == studentId));
 
                 if (!studentInTeam)
                     throw new InvalidOperationException("This student is not a member of this team.");
@@ -48,16 +48,31 @@ namespace ServicesLayer
             // Step 3: Create the task
             var task = new TeamTasks
             {
-                Details = dto.Details,
-                Deadline = dto.Deadline,
-                Status = "Pending",
-                TeamId = dto.TeamId,
-                AssignedStudentId = dto.AssignedStudentId
+                Title = dto.Title,
+                Description = dto.Description,
+                DueDate = dto.DueDate,
+                Status = false,           
+                TeamId = dto.TeamId
             };
 
             // Step 4: Save
             await _unitOfWork.Repository<TeamTasks>().AddAsync(task);
             await _unitOfWork.CompleteAsync();
+
+            // Step 5: Save assignments (one row per assigned student)
+            if (dto.AssignedTo != null && dto.AssignedTo.Any())
+            {
+                foreach (var studentId in dto.AssignedTo)
+                {
+                    var assignment = new TaskAssignment
+                    {
+                        TaskId = task.Id,
+                        StudentId = studentId
+                    };
+                    await _unitOfWork.Repository<TaskAssignment>().AddAsync(assignment);
+                }
+                await _unitOfWork.CompleteAsync();
+            }
 
             return MapToTaskResponse(task, team);
         }
@@ -65,7 +80,7 @@ namespace ServicesLayer
         // ─────────────────────────────────────────────────────
         // UPDATE TASK
         // ─────────────────────────────────────────────────────
-        public async Task<TaskResponseDTO?> UpdateTaskAsync(int taskId, string supervisorId, UpdateTaskDTO dto)
+        public async Task<TaskResponseDTO?> UpdateTaskAsync(string taskId, string supervisorId, UpdateTaskDTO dto)
         {
             var task = await _unitOfWork.Repository<TeamTasks>().GetByIdAsync(taskId);
             if (task == null) return null;
@@ -76,10 +91,28 @@ namespace ServicesLayer
             if (!teams.Any()) return null;
 
             // Only update fields that were actually sent
-            if (dto.Details != null) task.Details = dto.Details;
-            if (dto.Deadline.HasValue) task.Deadline = dto.Deadline.Value;
-            if (dto.AssignedStudentId != null) task.AssignedStudentId = dto.AssignedStudentId;
+            if (dto.Title != null) task.Title = dto.Title;
+            if (dto.Description != null) task.Description = dto.Description;
+            if (dto.DueDate.HasValue) task.DueDate = dto.DueDate.Value;
 
+            if (dto.AssignedTo != null && dto.AssignedTo.Any())
+            {
+                // Remove old assignments first
+                var oldAssignments = await _unitOfWork.Repository<TaskAssignment>()
+                    .FindAsync(a => a.TaskId == taskId);
+                foreach (var old in oldAssignments)
+                    _unitOfWork.Repository<TaskAssignment>().Delete(old);
+
+                // Add new assignments
+                foreach (var studentId in dto.AssignedTo)
+                {
+                    await _unitOfWork.Repository<TaskAssignment>().AddAsync(new TaskAssignment
+                    {
+                        TaskId = taskId,
+                        StudentId = studentId
+                    });
+                }
+            }
             _unitOfWork.Repository<TeamTasks>().Update(task);
             await _unitOfWork.CompleteAsync();
 
@@ -89,7 +122,7 @@ namespace ServicesLayer
         // ─────────────────────────────────────────────────────
         // DELETE TASK
         // ─────────────────────────────────────────────────────
-        public async Task<bool> DeleteTaskAsync(int taskId, string supervisorId)
+        public async Task<bool> DeleteTaskAsync(string taskId, string supervisorId)
         {
             var task = await _unitOfWork.Repository<TeamTasks>().GetByIdAsync(taskId);
             if (task == null) return false;
@@ -107,13 +140,17 @@ namespace ServicesLayer
         // SUBMIT TASK
         // Student uploads their solution file
         // ─────────────────────────────────────────────────────
-        public async Task<bool> SubmitTaskAsync(int taskId, string studentId, SubmitTaskDTO dto)
+        public async Task<bool> SubmitTaskAsync(string taskId, string studentId, SubmitTaskDTO dto)
         {
             var task = await _unitOfWork.Repository<TeamTasks>().GetByIdAsync(taskId);
             if (task == null) return false;
 
-            // 1. لو المهمة مخصصة لطالب معين -> هو بس اللي يسلم
-            if (task.AssignedStudentId != null && task.AssignedStudentId != studentId)
+            // 1.
+            var assignments = await _unitOfWork.Repository<TaskAssignment>()
+                .FindAsync(a => a.TaskId == taskId);
+
+            // If task has specific assignments → only those students can submit
+            if (assignments.Any() && !assignments.Any(a => a.StudentId == studentId))
                 return false;
 
             // 2. التأكد إن الطالب عضو في التيم
@@ -127,9 +164,22 @@ namespace ServicesLayer
             if (team == null || !team.Members.Any(m => m.UserId == studentId))
                 return false;
 
-            // 3. تحديث بيانات التسليم
-            task.SolutionFile = dto.SolutionFile;
-            task.Status = "Done";
+            // Save attachments
+            if (dto.StudentAttachments != null && dto.StudentAttachments.Any())
+            {
+                foreach (var file in dto.StudentAttachments)
+                {
+                    await _unitOfWork.Repository<TaskAttachment>().AddAsync(new TaskAttachment
+                    {
+                        Name = file.Name,
+                        Type = file.Type,
+                        FilePath = file.Name,     // store name as path for now
+                        UploadedBy = "Student",
+                        TaskId = taskId
+                    });
+                }
+            }
+                task.Status = true;
 
             _unitOfWork.Repository<TeamTasks>().Update(task);
             await _unitOfWork.CompleteAsync();
@@ -141,7 +191,7 @@ namespace ServicesLayer
         // GIVE FEEDBACK
         // Supervisor updates task status after reviewing
         // ─────────────────────────────────────────────────────
-        public async Task<bool> GiveFeedbackAsync(int taskId, string supervisorId, TaskFeedbackDTO dto)
+        public async Task<bool> GiveFeedbackAsync(string taskId, string supervisorId, TaskFeedbackDTO dto)
         {
             var task = await _unitOfWork.Repository<TeamTasks>().GetByIdAsync(taskId);
             if (task == null) return false;
@@ -150,7 +200,7 @@ namespace ServicesLayer
                 .FindAsync(t => t.Id == task.TeamId && t.SupervisorId == supervisorId);
             if (!teams.Any()) return false;
 
-            task.Status = dto.Status;
+            task.Status = true;
             _unitOfWork.Repository<TeamTasks>().Update(task);
             await _unitOfWork.CompleteAsync();
             return true;
@@ -159,7 +209,7 @@ namespace ServicesLayer
         // ─────────────────────────────────────────────────────
         // GET TASK BY ID (full details with comments)
         // ─────────────────────────────────────────────────────
-        public async Task<TaskResponseDTO?> GetTaskByIdAsync(int taskId)
+        public async Task<TaskResponseDTO?> GetTaskByIdAsync(string taskId)
         {
             var task = await _unitOfWork.Repository<TeamTasks>().GetByIdAsync(taskId);
             if (task == null) return null;
@@ -185,8 +235,16 @@ namespace ServicesLayer
         // ─────────────────────────────────────────────────────
         public async Task<IEnumerable<TaskSummaryDTO>> GetTasksByStudentAsync(string studentId)
         {
+            // Step 1: get all task IDs assigned to this student
+            var assignments = await _unitOfWork.Repository<TaskAssignment>()
+                .FindAsync(a => a.StudentId == studentId);
+
+            var taskIds = assignments.Select(a => a.TaskId).ToHashSet();
+
+            // Step 2: get those tasks
             var tasks = await _unitOfWork.Repository<TeamTasks>()
-                .FindAsync(t => t.AssignedStudentId == studentId);
+                .FindAsync(t => taskIds.Contains(t.Id));
+
             return tasks.Select(MapToTaskSummary);
         }
 
@@ -211,7 +269,7 @@ namespace ServicesLayer
         // ─────────────────────────────────────────────────────
         // ADD COMMENT
         // ─────────────────────────────────────────────────────
-        public async Task<TaskCommentResponseDTO> AddCommentAsync(int taskId, string userId, AddTaskCommentDTO dto)
+        public async Task<TaskCommentResponseDTO> AddCommentAsync(string taskId, string userId, AddTaskCommentDTO dto)
         {
             var task = await _unitOfWork.Repository<TeamTasks>().GetByIdAsync(taskId);
             if (task == null)
@@ -219,7 +277,7 @@ namespace ServicesLayer
 
             var comment = new TaskComment
             {
-                Content = dto.Content,
+                Content = dto.Text,
                 UserId = userId,
                 TaskId = taskId,
                 CreatedAt = DateTime.UtcNow
@@ -231,10 +289,9 @@ namespace ServicesLayer
             return new TaskCommentResponseDTO
             {
                 Id = comment.Id,
-                Content = comment.Content,
+                Text = comment.Content,
                 UserId = comment.UserId,
                 UserName = comment.User?.FullName ?? "Unknown",
-                UserImage = comment.User?.Profile_Image,
                 CreatedAt = comment.CreatedAt
             };
         }
@@ -262,34 +319,38 @@ namespace ServicesLayer
 
         private static TaskResponseDTO MapToTaskResponse(TeamTasks task, Team? team) => new()
         {
+            // FIX: all field names updated to match Flutter ✅
             Id = task.Id,
-            Details = task.Details,
-            Deadline = task.Deadline,
-            Status = task.Status,
-            SolutionFile = task.SolutionFile,
-            TeamId = task.TeamId,
-            TeamName = team?.TeamName ?? "Unknown",
-            AssignedStudentId = task.AssignedStudentId,
-            AssignedStudentName = task.Student?.FullName,
-            Comments = task.Comments?.Select(c => new TaskCommentResponseDTO
-            {
-                Id = c.Id,
-                Content = c.Content,
-                UserId = c.UserId,
-                UserName = c.User?.FullName ?? "Unknown",
-                UserImage = c.User?.Profile_Image,
-                CreatedAt = c.CreatedAt
-            }).ToList() ?? new()
+            Title = task.Title,
+            Description = task.Description,
+            From = "Supervisor",
+            DueDate = task.DueDate,
+            TeamId = task.TeamId.ToString(),
+            SupervisorId = team?.SupervisorId ?? "",
+            // FIX: get assigned students from Assignments collection ✅
+            AssignedTo = task.Assignments?
+                .Select(a => a.StudentId)
+                .ToList() ?? new(),
+            // FIX: Status is bool ✅
+            IsCompleted = task.Status,
+            SupervisorAttachments = task.Attachments?
+                .Where(a => a.UploadedBy == "Supervisor")
+                .Select(a => new AttachmentDTO { Name = a.Name, Type = a.Type })
+                .ToList() ?? new(),
+            StudentAttachments = task.Attachments?
+                .Where(a => a.UploadedBy == "Student")
+                .Select(a => new AttachmentDTO { Name = a.Name, Type = a.Type })
+                .ToList() ?? new()
         };
 
         private static TaskSummaryDTO MapToTaskSummary(TeamTasks task) => new()
         {
             Id = task.Id,
-            Details = task.Details,
-            Deadline = task.Deadline,
-            Status = task.Status,
-            TeamName = task.Team?.TeamName ?? "Unknown",
-            AssignedStudentName = task.Student?.FullName
+            Title = task.Title,
+            DueDate = task.DueDate,
+            IsCompleted = task.Status,
+            TeamId = task.TeamId.ToString(),
+            AssignedTo = task.Assignments?.FirstOrDefault()?.Student?.FullName
         };
     }
 }

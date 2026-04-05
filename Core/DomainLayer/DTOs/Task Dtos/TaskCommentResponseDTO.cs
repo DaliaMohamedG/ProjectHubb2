@@ -9,10 +9,11 @@ namespace DomainLayer.DTOs.Task_Dtos
     public class TaskCommentResponseDTO
     {
         public int Id { get; set; }
-        public string Content { get; set; } = null!;
+        public string TaskId { get; set; } = null!;
+        public string Text { get; set; } = null!;
         public string UserId { get; set; } = null!;
         public string UserName { get; set; } = null!;       
-        public string? UserImage { get; set; }               
+        //public string? UserImage { get; set; }               
         public DateTime CreatedAt { get; set; }
     }
 }
