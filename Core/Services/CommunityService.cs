@@ -1,7 +1,9 @@
 ﻿using DomainLayer.Contracts;
-using DomainLayer.DTOs;
+using DomainLayer.DTOs.CommunityDtos;
+using DomainLayer.DTOs.PostDtos;
 using DomainLayer.Models;
 using ServicesAbstractionLayer;
+using System.Xml.Linq;
 
 namespace ServicesLayer
 {
@@ -19,53 +21,35 @@ namespace ServicesLayer
             var posts = await _unitOfWork.Repository<Post>().ListWithSpec(
                 p => p.Visibility == "Public",
                 p => p.User,
-                p => p.Likes
+                p => p.Likes,
+                p => p.Comments
             );
 
-            return posts.Select(p => new PostResponseDto
-            {
-                Id = p.Id,
-                Content = p.Content,
-                ImageUrl = p.ImageUrl,
-                LikesCount = p.Likes.Count(),
-                IsLiked = p.Likes.Any(l => l.UserId == currentUserId)
-            }).ToList();
+            return posts.Select(p => MapToPostResponse(p, currentUserId)).ToList();
         }
         public async Task<IEnumerable<PostResponseDto>> GetTeamPostsAsync(int teamId, string currentUserId)
         {
             var posts = await _unitOfWork.Repository<Post>().ListWithSpec(
                 p => p.Visibility == "My Team" && p.TeamId == teamId,
                 p => p.User,
-                p => p.Likes
+                p => p.Likes,
+                p => p.Comments
             );
 
-            return posts.Select(p => new PostResponseDto
-            {
-                Id = p.Id,
-                Content = p.Content,
-                ImageUrl = p.ImageUrl,
-                LikesCount = p.Likes.Count(),
-                IsLiked = p.Likes.Any(l => l.UserId == currentUserId)
-            }).ToList();
+            return posts.Select(p => MapToPostResponse(p, currentUserId)).ToList();
         }
         public async Task<IEnumerable<PostResponseDto>> GetMyPostsAsync(string userId)
         {
             var posts = await _unitOfWork.Repository<Post>().ListWithSpec(
                 p => p.UserId == userId,
                 p => p.User,
-                p => p.Likes
+                p => p.Likes,
+                p => p.Comments
             );
 
-            return posts.Select(p => new PostResponseDto
-            {
-                Id = p.Id,
-                Content = p.Content,
-                ImageUrl = p.ImageUrl,
-                LikesCount = p.Likes.Count(),
-                IsLiked = p.Likes.Any(l => l.UserId == userId)
-            }).ToList();
+            return posts.Select(p => MapToPostResponse(p, userId)).ToList();
         }
-        public async Task<bool> CreatePostAsync(PostCreateDto dto)
+        public async Task<bool> CreatePostAsync(PostCreateDto dto, string userId)
         {
             string? imagePath = null;
 
@@ -88,29 +72,66 @@ namespace ServicesLayer
             {
                 Content = dto.Content,
                 Visibility = dto.Visibility,
-                UserId = dto.UserId,
+                UserId = userId,                 // comes from JWT token
                 ImageUrl = imagePath,
-                CreatedAt = DateTime.Now
+                TeamId = dto.TeamId,
+                CreatedAt = DateTime.UtcNow
             };
 
             await _unitOfWork.Repository<Post>().AddAsync(post);
             return await _unitOfWork.CompleteAsync() > 0;
         }
-        public async Task<IEnumerable<PostComment>> GetCommentsByPostIdAsync(int postId)
+
+        public async Task<bool> DeletePostAsync(string postId, string userId)
         {
-            return await _unitOfWork.Repository<PostComment>().FindAsync(c => c.PostId == postId);
+            var posts = await _unitOfWork.Repository<Post>()
+                .FindAsync(p => p.Id == postId && p.UserId == userId);
+
+            var post = posts.FirstOrDefault();
+            if (post == null) return false;
+
+            _unitOfWork.Repository<Post>().Delete(post);
+            return await _unitOfWork.CompleteAsync() > 0;
         }
-        public async Task<bool> AddCommentAsync(CommentCreateDto dto)
+        public async Task<IEnumerable<CommentResponseDto>> GetCommentsByPostIdAsync(int postId)
+        {
+            var comments = await _unitOfWork.Repository<PostComment>().FindAsync(c => c.PostId == postId);
+
+            return comments.Select(c => new CommentResponseDto
+            {
+                Id = c.Id,
+                PostId = c.PostId.ToString(),
+                UserName = c.User?.FullName ?? "Unknown",
+                UserInitial = c.User?.FullName?.FirstOrDefault().ToString() ?? "?",
+                Content = c.Content,
+                CreatedAt = c.CreatedAt,
+                Likes = 0,                              // add likes to Comment model later
+                IsLiked = false
+            }).ToList();
+        }
+        public async Task<bool> AddCommentAsync(CommentCreateDto dto,string userId)
         {
             var comment = new PostComment
             {
-                Text = dto.Text,
+                Content = dto.Content,
                 PostId = dto.PostId,
-                UserId = dto.UserId,
+                UserId = userId,
                 CreatedAt = DateTime.Now
             };
 
             await _unitOfWork.Repository<PostComment>().AddAsync(comment);
+            return await _unitOfWork.CompleteAsync() > 0;
+        }
+
+        public async Task<bool> DeleteCommentAsync(string commentId, string userId)
+        {
+            var comments = await _unitOfWork.Repository<PostComment>()
+                .FindAsync(c => c.Id == commentId && c.UserId == userId);
+
+            var comment = comments.FirstOrDefault();
+            if (comment == null) return false;
+
+            _unitOfWork.Repository<PostComment>().Delete(comment);
             return await _unitOfWork.CompleteAsync() > 0;
         }
         public async Task<bool> ToggleLikeAsync(int postId, string userId)
@@ -124,6 +145,42 @@ namespace ServicesLayer
                 await repo.AddAsync(new Like { PostId = postId, UserId = userId });
 
             return await _unitOfWork.CompleteAsync() > 0;
+        }
+
+        private static PostResponseDto MapToPostResponse(Post post, string currentUserId)
+        {
+            // Get list of user IDs who liked this post
+            var likedByUserIds = post.Likes?
+                .Select(l => l.UserId)
+                .ToList() ?? new();
+
+            return new PostResponseDto
+            {
+                Id = post.Id.ToString(),
+                UserId = post.UserId,
+                UserName = post.User?.FullName ?? "Unknown",
+                UserAvatarColor = "#DBEAFE",                    // default color for now
+                CreatedAt = post.CreatedAt,                     // Flutter calculates timeAgo
+                Content = post.Content,
+                Hashtags = ExtractHashtags(post.Content),       // extract from content
+                LikesCount = post.Likes?.Count ?? 0,                 // just the count
+                CommentsCount = post.Comments?.Count ?? 0,
+                AttachmentName = post.ImageUrl,                 // ImageUrl → AttachmentName
+                IsLiked = likedByUserIds.Contains(currentUserId),
+                LikedByUserIds = likedByUserIds,
+                Visibility = post.Visibility?.ToLower() ?? "public"
+            };
+        }
+
+
+        private static List<string> ExtractHashtags(string content)
+        {
+            if (string.IsNullOrEmpty(content)) return new();
+
+            return content
+                .Split(' ')
+                .Where(word => word.StartsWith("#"))
+                .ToList();
         }
     }
 }

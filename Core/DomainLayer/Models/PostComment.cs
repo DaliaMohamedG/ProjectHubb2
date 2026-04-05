@@ -4,8 +4,8 @@ namespace DomainLayer.Models
 {
     public class PostComment
     {
-        public int Id { get; set; }
-        public string Text { get; set; }
+        public string Id { get; set; }
+        public string Content { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
         public int PostId { get; set; }

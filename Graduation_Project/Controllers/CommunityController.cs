@@ -1,4 +1,4 @@
-﻿using DomainLayer.DTOs;
+﻿using DomainLayer.DTOs.PostDtos;
 using Microsoft.AspNetCore.Mvc;
 using ServicesAbstractionLayer;
 
@@ -37,9 +37,9 @@ namespace Graduation_Project.Controllers
         }
 
         [HttpPost("posts")]
-        public async Task<IActionResult> Create([FromForm] PostCreateDto dto)
+        public async Task<IActionResult> Create([FromForm] PostCreateDto dto, string userId)
         {
-            var result = await _communityService.CreatePostAsync(dto);
+            var result = await _communityService.CreatePostAsync(dto,userId);
             if (!result) return BadRequest(new { message = "Error creating post" });
             return Ok(new { message = "Successfully published" });
         }
@@ -52,9 +52,9 @@ namespace Graduation_Project.Controllers
         }
 
         [HttpPost("comments")]
-        public async Task<IActionResult> AddComment([FromBody] CommentCreateDto dto)
+        public async Task<IActionResult> AddComment([FromBody] CommentCreateDto dto,string userId)
         {
-            var result = await _communityService.AddCommentAsync(dto);
+            var result = await _communityService.AddCommentAsync(dto, userId);
             if (!result) return BadRequest(new { message = "Error adding comment" });
             return Ok(new { message = "Comment added" });
         }
