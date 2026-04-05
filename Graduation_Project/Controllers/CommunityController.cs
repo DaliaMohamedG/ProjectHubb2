@@ -1,4 +1,5 @@
-﻿using DomainLayer.DTOs.PostDtos;
+﻿using DomainLayer.DTOs.CommunityDtos;
+using DomainLayer.DTOs.PostDtos;
 using Microsoft.AspNetCore.Mvc;
 using ServicesAbstractionLayer;
 
