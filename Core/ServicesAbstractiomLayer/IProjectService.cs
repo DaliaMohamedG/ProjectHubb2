@@ -1,11 +1,12 @@
 ﻿using DomainLayer.DTOs;
-using DomainLayer.Models;
 
 namespace ServicesAbstractionLayer
 {
     public interface IProjectService
     {
-        Task<IEnumerable<Project>> GetAllProjectsAsync();
+        Task<IEnumerable<ProjectResponseDto>> GetAllProjectsAsync(string? search, string? category);
         Task<bool> UploadStudentProjectAsync(StudentProjectCreateDto dto);
+        Task<IEnumerable<object>> GetProjectTeamMembersAsync(int projectId);
+
     }
 }

@@ -17,53 +17,41 @@ namespace ServicesLayer
         public async Task<IEnumerable<PostResponseDto>> GetTimelinePostsAsync(string currentUserId)
         {
             var posts = await _unitOfWork.Repository<Post>().ListWithSpec(
-                p => p.Visibility == "Public",
+                p => p.Visibility == "public",
                 p => p.User,
-                p => p.Likes
+                p => p.Likes,
+                p => p.Comments
             );
 
-            return posts.Select(p => new PostResponseDto
-            {
-                Id = p.Id,
-                Content = p.Content,
-                ImageUrl = p.ImageUrl,
-                LikesCount = p.Likes.Count(),
-                IsLiked = p.Likes.Any(l => l.UserId == currentUserId)
-            }).ToList();
+            return posts.Select(p => MapToPostDto(p, currentUserId)).ToList();
         }
         public async Task<IEnumerable<PostResponseDto>> GetTeamPostsAsync(int teamId, string currentUserId)
         {
             var posts = await _unitOfWork.Repository<Post>().ListWithSpec(
-                p => p.Visibility == "My Team" && p.TeamId == teamId,
-                p => p.User,
-                p => p.Likes
-            );
+p => p.TeamId == teamId,
+p => p.User,
+                p => p.Likes,
+                p => p.Comments
+                );
 
-            return posts.Select(p => new PostResponseDto
+            if (posts == null || !posts.Any())
             {
-                Id = p.Id,
-                Content = p.Content,
-                ImageUrl = p.ImageUrl,
-                LikesCount = p.Likes.Count(),
-                IsLiked = p.Likes.Any(l => l.UserId == currentUserId)
-            }).ToList();
+                Console.WriteLine($"No posts found for TeamId: {teamId}");
+                return new List<PostResponseDto>();
+            }
+
+            return posts.Select(p => MapToPostDto(p, currentUserId)).ToList();
         }
         public async Task<IEnumerable<PostResponseDto>> GetMyPostsAsync(string userId)
         {
             var posts = await _unitOfWork.Repository<Post>().ListWithSpec(
                 p => p.UserId == userId,
                 p => p.User,
-                p => p.Likes
+                p => p.Likes,
+                p => p.Comments
             );
 
-            return posts.Select(p => new PostResponseDto
-            {
-                Id = p.Id,
-                Content = p.Content,
-                ImageUrl = p.ImageUrl,
-                LikesCount = p.Likes.Count(),
-                IsLiked = p.Likes.Any(l => l.UserId == userId)
-            }).ToList();
+            return posts.Select(p => MapToPostDto(p, userId)).ToList();
         }
         public async Task<bool> CreatePostAsync(PostCreateDto dto)
         {
@@ -89,6 +77,7 @@ namespace ServicesLayer
                 Content = dto.Content,
                 Visibility = dto.Visibility,
                 UserId = dto.UserId,
+                TeamId = dto.TeamId,
                 ImageUrl = imagePath,
                 CreatedAt = DateTime.Now
             };
@@ -104,7 +93,7 @@ namespace ServicesLayer
         {
             var comment = new PostComment
             {
-                Text = dto.Text,
+                Text = dto.Content,
                 PostId = dto.PostId,
                 UserId = dto.UserId,
                 CreatedAt = DateTime.Now
@@ -124,6 +113,24 @@ namespace ServicesLayer
                 await repo.AddAsync(new Like { PostId = postId, UserId = userId });
 
             return await _unitOfWork.CompleteAsync() > 0;
+        }
+        private PostResponseDto MapToPostDto(Post p, string currentUserId)
+        {
+            return new PostResponseDto
+            {
+                Id = p.Id,
+                UserId = p.UserId,
+                UserName = p.User?.FullName ?? "Unknown User",
+                UserAvatarColor = "#DBEAFE",
+                Content = p.Content,
+                TimeAgo = "Just now",
+                Likes = p.Likes?.Count() ?? 0,
+                CommentsCount = p.Comments?.Count() ?? 0,
+                IsLiked = p.Likes?.Any(l => l.UserId == currentUserId) ?? false,
+                LikedByUserIds = p.Likes?.Select(l => l.UserId).ToList() ?? new List<string>(),
+                AttachmentName = p.ImageUrl,
+                Visibility = p.Visibility?.ToLower() ?? "public"
+            };
         }
     }
 }

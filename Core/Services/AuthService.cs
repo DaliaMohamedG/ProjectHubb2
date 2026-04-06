@@ -12,7 +12,9 @@ namespace ServicesLayer
 
         public async Task<bool> SyncUserAsync(UserSyncDto dto)
         {
-            if (dto.UserType == "Student")
+            var incomingRole = dto.Role.ToLower();
+
+            if (incomingRole == "user" || incomingRole == "student")
             {
                 var student = new Student
                 {
@@ -26,7 +28,7 @@ namespace ServicesLayer
                 };
                 await _unitOfWork.Repository<Student>().AddAsync(student);
             }
-            else if (dto.UserType == "Supervisor")
+            else if (incomingRole == "supervisor" || incomingRole == "doctor")
             {
                 var supervisor = new Supervisor
                 {
@@ -39,7 +41,7 @@ namespace ServicesLayer
                 };
                 await _unitOfWork.Repository<Supervisor>().AddAsync(supervisor);
             }
-            else if (dto.UserType == "Assistant")
+            else if (incomingRole == "assistant")
             {
                 var assistant = new Assistant
                 {
