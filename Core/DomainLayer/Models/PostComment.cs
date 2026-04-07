@@ -8,7 +8,7 @@ namespace DomainLayer.Models
         public string Content { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
-        public int PostId { get; set; }
+        public string PostId { get; set; }
         public virtual Post Post { get; set; }
 
         public string UserId { get; set; }

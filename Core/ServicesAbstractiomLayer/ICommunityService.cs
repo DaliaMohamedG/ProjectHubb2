@@ -11,9 +11,9 @@ namespace ServicesAbstractionLayer
         Task<IEnumerable<PostResponseDto>> GetMyPostsAsync(string userId);
         Task<bool> CreatePostAsync(PostCreateDto dto);
         Task<bool> DeletePostAsync(string postId, string userId);
-        Task<IEnumerable<CommentResponseDto>> GetCommentsByPostIdAsync(int postId);
+        Task<IEnumerable<PostComment>> GetCommentsByPostIdAsync(string postId);
         Task<bool> AddCommentAsync(CommentCreateDto dto , string userId);
         Task<bool> DeleteCommentAsync(string commentId, string userId);
-        Task<bool> ToggleLikeAsync(int postId, string userId);
+        Task<bool> ToggleLikeAsync(string postId, string userId);
     }
 }

@@ -46,7 +46,7 @@ namespace Graduation_Project.Controllers
         }
 
         [HttpGet("posts/{postId}/comments")]
-        public async Task<IActionResult> GetComments(int postId)
+        public async Task<IActionResult> GetComments(string postId)
         {
             var comments = await _communityService.GetCommentsByPostIdAsync(postId);
             return Ok(comments);
@@ -61,7 +61,7 @@ namespace Graduation_Project.Controllers
         }
 
         [HttpPost("posts/{postId}/like")]
-        public async Task<IActionResult> LikePost(int postId, [FromBody] string userId)
+        public async Task<IActionResult> LikePost(string postId, [FromBody] string userId)
         {
             var result = await _communityService.ToggleLikeAsync(postId, userId);
             return Ok(new { success = result });

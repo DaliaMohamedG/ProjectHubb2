@@ -86,7 +86,7 @@ namespace ServicesLayer
             await _unitOfWork.Repository<Post>().AddAsync(post);
             return await _unitOfWork.CompleteAsync() > 0;
         }
-        public async Task<IEnumerable<PostComment>> GetCommentsByPostIdAsync(int postId)
+        public async Task<IEnumerable<PostComment>> GetCommentsByPostIdAsync(string postId)
         {
             return await _unitOfWork.Repository<PostComment>().FindAsync(c => c.PostId == postId);
         }
@@ -103,7 +103,7 @@ namespace ServicesLayer
             await _unitOfWork.Repository<PostComment>().AddAsync(comment);
             return await _unitOfWork.CompleteAsync() > 0;
         }
-        public async Task<bool> ToggleLikeAsync(int postId, string userId)
+        public async Task<bool> ToggleLikeAsync(string postId, string userId)
         {
             var repo = _unitOfWork.Repository<Like>();
             var existingLike = await repo.GetEntityWithSpec(l => l.PostId == postId && l.UserId == userId);
@@ -134,14 +134,16 @@ namespace ServicesLayer
             };
         }
 
-        public Task<bool> DeletePostAsync(string postId, string userId)
+        public async Task<bool> DeletePostAsync(string postId, string userId)
         {
-            throw new NotImplementedException();
-        }
+            var posts = await _unitOfWork.Repository<Post>()
+                .FindAsync(p => p.Id == postId && p.UserId == userId);
 
-        Task<IEnumerable<CommentResponseDto>> ICommunityService.GetCommentsByPostIdAsync(int postId)
-        {
-            throw new NotImplementedException();
+            var post = posts.FirstOrDefault();
+            if (post == null) return false;
+
+            _unitOfWork.Repository<Post>().Delete(post);
+            return await _unitOfWork.CompleteAsync() > 0;
         }
 
         public Task<bool> AddCommentAsync(CommentCreateDto dto, string userId)

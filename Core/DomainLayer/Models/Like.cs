@@ -2,7 +2,7 @@
 {
     public class Like
     {
-        public int PostId { get; set; }
+        public string PostId { get; set; }
         public virtual Post Post { get; set; }
 
         public string UserId { get; set; }
