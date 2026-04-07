@@ -84,7 +84,7 @@ namespace ServicesLayer
 
                 Members = t.Members?.Select(m => new TeamMemberResponseDto
                 {
-                    Id = m.UserId,
+                    Id = m.TeamId.ToString(),
                     Name = m.User?.FullName ?? "Unknown User",
                     PhotoUrl = m.User?.Profile_Image,
                     Role = m.RoleInTeam

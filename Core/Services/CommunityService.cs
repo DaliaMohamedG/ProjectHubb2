@@ -1,5 +1,6 @@
 ﻿using DomainLayer.Contracts;
 using DomainLayer.DTOs;
+using DomainLayer.DTOs.PostDtos;
 using DomainLayer.Models;
 using ServicesAbstractionLayer;
 
@@ -28,8 +29,8 @@ namespace ServicesLayer
         public async Task<IEnumerable<PostResponseDto>> GetTeamPostsAsync(int teamId, string currentUserId)
         {
             var posts = await _unitOfWork.Repository<Post>().ListWithSpec(
-p => p.TeamId == teamId,
-p => p.User,
+                p => p.TeamId == teamId,
+                p => p.User,
                 p => p.Likes,
                 p => p.Comments
                 );
@@ -93,7 +94,7 @@ p => p.User,
         {
             var comment = new PostComment
             {
-                Text = dto.Content,
+                Content = dto.Content,
                 PostId = dto.PostId,
                 UserId = dto.UserId,
                 CreatedAt = DateTime.Now
@@ -131,6 +132,26 @@ p => p.User,
                 AttachmentName = p.ImageUrl,
                 Visibility = p.Visibility?.ToLower() ?? "public"
             };
+        }
+
+        public Task<bool> DeletePostAsync(string postId, string userId)
+        {
+            throw new NotImplementedException();
+        }
+
+        Task<IEnumerable<CommentResponseDto>> ICommunityService.GetCommentsByPostIdAsync(int postId)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<bool> AddCommentAsync(CommentCreateDto dto, string userId)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<bool> DeleteCommentAsync(string commentId, string userId)
+        {
+            throw new NotImplementedException();
         }
     }
 }

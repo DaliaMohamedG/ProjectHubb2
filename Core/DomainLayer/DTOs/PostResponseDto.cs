@@ -5,7 +5,7 @@ namespace DomainLayer.DTOs
 {
     public class PostResponseDto
     {
-        public int Id { get; set; }
+        public string Id { get; set; }
 
         [JsonPropertyName("user_id")]
         public string UserId { get; set; }

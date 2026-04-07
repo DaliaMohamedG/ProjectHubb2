@@ -1,4 +1,4 @@
-﻿using DomainLayer.DTOs.CommunityDtos;
+﻿using DomainLayer.DTOs;
 using DomainLayer.DTOs.PostDtos;
 using DomainLayer.Models;
 
@@ -9,7 +9,7 @@ namespace ServicesAbstractionLayer
         Task<IEnumerable<PostResponseDto>> GetTimelinePostsAsync(string currentUserId);
         Task<IEnumerable<PostResponseDto>> GetTeamPostsAsync(int teamId, string currentUserId);
         Task<IEnumerable<PostResponseDto>> GetMyPostsAsync(string userId);
-        Task<bool> CreatePostAsync(PostCreateDto dto,string useId);
+        Task<bool> CreatePostAsync(PostCreateDto dto);
         Task<bool> DeletePostAsync(string postId, string userId);
         Task<IEnumerable<CommentResponseDto>> GetCommentsByPostIdAsync(int postId);
         Task<bool> AddCommentAsync(CommentCreateDto dto , string userId);

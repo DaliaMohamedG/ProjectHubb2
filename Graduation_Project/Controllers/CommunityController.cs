@@ -1,4 +1,4 @@
-﻿using DomainLayer.DTOs.CommunityDtos;
+﻿using DomainLayer.DTOs;
 using DomainLayer.DTOs.PostDtos;
 using Microsoft.AspNetCore.Mvc;
 using ServicesAbstractionLayer;
@@ -40,7 +40,7 @@ namespace Graduation_Project.Controllers
         [HttpPost("posts")]
         public async Task<IActionResult> Create([FromForm] PostCreateDto dto, string userId)
         {
-            var result = await _communityService.CreatePostAsync(dto,userId);
+            var result = await _communityService.CreatePostAsync(dto);
             if (!result) return BadRequest(new { message = "Error creating post" });
             return Ok(new { message = "Successfully published" });
         }
