@@ -1,9 +1,7 @@
 ﻿using DomainLayer.Contracts;
-using DomainLayer.DTOs.CommunityDtos;
-using DomainLayer.DTOs.PostDtos;
+using DomainLayer.DTOs;
 using DomainLayer.Models;
 using ServicesAbstractionLayer;
-using System.Xml.Linq;
 
 namespace ServicesLayer
 {
@@ -19,24 +17,30 @@ namespace ServicesLayer
         public async Task<IEnumerable<PostResponseDto>> GetTimelinePostsAsync(string currentUserId)
         {
             var posts = await _unitOfWork.Repository<Post>().ListWithSpec(
-                p => p.Visibility == "Public",
+                p => p.Visibility == "public",
                 p => p.User,
                 p => p.Likes,
                 p => p.Comments
             );
 
-            return posts.Select(p => MapToPostResponse(p, currentUserId)).ToList();
+            return posts.Select(p => MapToPostDto(p, currentUserId)).ToList();
         }
         public async Task<IEnumerable<PostResponseDto>> GetTeamPostsAsync(int teamId, string currentUserId)
         {
             var posts = await _unitOfWork.Repository<Post>().ListWithSpec(
-                p => p.Visibility == "My Team" && p.TeamId == teamId,
-                p => p.User,
+p => p.TeamId == teamId,
+p => p.User,
                 p => p.Likes,
                 p => p.Comments
-            );
+                );
 
-            return posts.Select(p => MapToPostResponse(p, currentUserId)).ToList();
+            if (posts == null || !posts.Any())
+            {
+                Console.WriteLine($"No posts found for TeamId: {teamId}");
+                return new List<PostResponseDto>();
+            }
+
+            return posts.Select(p => MapToPostDto(p, currentUserId)).ToList();
         }
         public async Task<IEnumerable<PostResponseDto>> GetMyPostsAsync(string userId)
         {
@@ -47,9 +51,9 @@ namespace ServicesLayer
                 p => p.Comments
             );
 
-            return posts.Select(p => MapToPostResponse(p, userId)).ToList();
+            return posts.Select(p => MapToPostDto(p, userId)).ToList();
         }
-        public async Task<bool> CreatePostAsync(PostCreateDto dto, string userId)
+        public async Task<bool> CreatePostAsync(PostCreateDto dto)
         {
             string? imagePath = null;
 
@@ -72,66 +76,30 @@ namespace ServicesLayer
             {
                 Content = dto.Content,
                 Visibility = dto.Visibility,
-                UserId = userId,                 // comes from JWT token
-                ImageUrl = imagePath,
+                UserId = dto.UserId,
                 TeamId = dto.TeamId,
-                CreatedAt = DateTime.UtcNow
+                ImageUrl = imagePath,
+                CreatedAt = DateTime.Now
             };
 
             await _unitOfWork.Repository<Post>().AddAsync(post);
             return await _unitOfWork.CompleteAsync() > 0;
         }
-
-        public async Task<bool> DeletePostAsync(string postId, string userId)
+        public async Task<IEnumerable<PostComment>> GetCommentsByPostIdAsync(int postId)
         {
-            var posts = await _unitOfWork.Repository<Post>()
-                .FindAsync(p => p.Id == postId && p.UserId == userId);
-
-            var post = posts.FirstOrDefault();
-            if (post == null) return false;
-
-            _unitOfWork.Repository<Post>().Delete(post);
-            return await _unitOfWork.CompleteAsync() > 0;
+            return await _unitOfWork.Repository<PostComment>().FindAsync(c => c.PostId == postId);
         }
-        public async Task<IEnumerable<CommentResponseDto>> GetCommentsByPostIdAsync(int postId)
-        {
-            var comments = await _unitOfWork.Repository<PostComment>().FindAsync(c => c.PostId == postId);
-
-            return comments.Select(c => new CommentResponseDto
-            {
-                Id = c.Id,
-                PostId = c.PostId.ToString(),
-                UserName = c.User?.FullName ?? "Unknown",
-                UserInitial = c.User?.FullName?.FirstOrDefault().ToString() ?? "?",
-                Content = c.Content,
-                CreatedAt = c.CreatedAt,
-                Likes = 0,                              // add likes to Comment model later
-                IsLiked = false
-            }).ToList();
-        }
-        public async Task<bool> AddCommentAsync(CommentCreateDto dto,string userId)
+        public async Task<bool> AddCommentAsync(CommentCreateDto dto)
         {
             var comment = new PostComment
             {
-                Content = dto.Content,
+                Text = dto.Content,
                 PostId = dto.PostId,
-                UserId = userId,
+                UserId = dto.UserId,
                 CreatedAt = DateTime.Now
             };
 
             await _unitOfWork.Repository<PostComment>().AddAsync(comment);
-            return await _unitOfWork.CompleteAsync() > 0;
-        }
-
-        public async Task<bool> DeleteCommentAsync(string commentId, string userId)
-        {
-            var comments = await _unitOfWork.Repository<PostComment>()
-                .FindAsync(c => c.Id == commentId && c.UserId == userId);
-
-            var comment = comments.FirstOrDefault();
-            if (comment == null) return false;
-
-            _unitOfWork.Repository<PostComment>().Delete(comment);
             return await _unitOfWork.CompleteAsync() > 0;
         }
         public async Task<bool> ToggleLikeAsync(int postId, string userId)
@@ -146,41 +114,23 @@ namespace ServicesLayer
 
             return await _unitOfWork.CompleteAsync() > 0;
         }
-
-        private static PostResponseDto MapToPostResponse(Post post, string currentUserId)
+        private PostResponseDto MapToPostDto(Post p, string currentUserId)
         {
-            // Get list of user IDs who liked this post
-            var likedByUserIds = post.Likes?
-                .Select(l => l.UserId)
-                .ToList() ?? new();
-
             return new PostResponseDto
             {
-                Id = post.Id.ToString(),
-                UserId = post.UserId,
-                UserName = post.User?.FullName ?? "Unknown",
-                UserAvatarColor = "#DBEAFE",                    // default color for now
-                CreatedAt = post.CreatedAt,                     // Flutter calculates timeAgo
-                Content = post.Content,
-                Hashtags = ExtractHashtags(post.Content),       // extract from content
-                LikesCount = post.Likes?.Count ?? 0,                 // just the count
-                CommentsCount = post.Comments?.Count ?? 0,
-                AttachmentName = post.ImageUrl,                 // ImageUrl → AttachmentName
-                IsLiked = likedByUserIds.Contains(currentUserId),
-                LikedByUserIds = likedByUserIds,
-                Visibility = post.Visibility?.ToLower() ?? "public"
+                Id = p.Id,
+                UserId = p.UserId,
+                UserName = p.User?.FullName ?? "Unknown User",
+                UserAvatarColor = "#DBEAFE",
+                Content = p.Content,
+                TimeAgo = "Just now",
+                Likes = p.Likes?.Count() ?? 0,
+                CommentsCount = p.Comments?.Count() ?? 0,
+                IsLiked = p.Likes?.Any(l => l.UserId == currentUserId) ?? false,
+                LikedByUserIds = p.Likes?.Select(l => l.UserId).ToList() ?? new List<string>(),
+                AttachmentName = p.ImageUrl,
+                Visibility = p.Visibility?.ToLower() ?? "public"
             };
-        }
-
-
-        private static List<string> ExtractHashtags(string content)
-        {
-            if (string.IsNullOrEmpty(content)) return new();
-
-            return content
-                .Split(' ')
-                .Where(word => word.StartsWith("#"))
-                .ToList();
         }
     }
 }

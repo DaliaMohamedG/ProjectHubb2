@@ -1,13 +1,13 @@
 ﻿using Microsoft.AspNetCore.Http;
 
-namespace DomainLayer.DTOs.PostDtos
+namespace DomainLayer.DTOs
 {
     public class PostCreateDto
     {
         public string Content { get; set; }
-        public string Visibility { get; set; } = "Public";
-        public int? TeamId { get; set; }          // only if visibility = "myTeam"
-        public string? AttachmentName { get; set; }
+        public string Visibility { get; set; } = "public";
+        public string UserId { get; set; }
         public IFormFile? PostImage { get; set; }
+        public int? TeamId { get; set; }
     }
 }

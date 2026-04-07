@@ -10,9 +10,37 @@ namespace ServicesLayer
         private readonly IUnitOfWork _unitOfWork;
         public ProjectService(IUnitOfWork unitOfWork) => _unitOfWork = unitOfWork;
 
-        public async Task<IEnumerable<Project>> GetAllProjectsAsync()
+        public async Task<IEnumerable<ProjectResponseDto>> GetAllProjectsAsync(string? search, string? category)
         {
-            return await _unitOfWork.Repository<Project>().GetAllAsync();
+            var projects = await _unitOfWork.Repository<Project>().ListWithSpec(
+                p => true,
+                p => p.Student
+            );
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                projects = projects.Where(p => p.Title.Contains(search, StringComparison.OrdinalIgnoreCase)
+                                            || p.Description.Contains(search, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (!string.IsNullOrEmpty(category) && category != "All")
+            {
+                projects = projects.Where(p => p.Category.Equals(category, StringComparison.OrdinalIgnoreCase));
+            }
+
+            return projects.Select(p => new ProjectResponseDto
+            {
+                Id = p.Id.ToString(),
+                Title = p.Title,
+                Description = p.Description,
+                AuthorId = p.StudentId,
+                AuthorName = p.Student?.FullName ?? "Unknown User",
+                Category = p.Category,
+                Tags = p.TechnologyUsed?.Split(',').Select(t => t.Trim()).ToList() ?? new List<string>(),
+                Images = new List<string> { p.ImageUrl },
+                GithubUrl = p.ProjectFilePath,
+                CreatedAt = p.CreatedAt
+            }).OrderByDescending(p => p.CreatedAt);
         }
         public async Task<bool> UploadStudentProjectAsync(StudentProjectCreateDto dto)
         {
@@ -47,13 +75,40 @@ namespace ServicesLayer
                 Description = dto.Description,
                 Category = dto.Category,
                 TechnologyUsed = dto.Tags,
-                StudentId = dto.StudentId,
+                StudentId = dto.AuthorId,
                 ProjectFilePath = docFileName != null ? "/uploads/documents/" + docFileName : dto.GitHubUrl,
-                ImageUrl = "/uploads/images/" + imageFileName
+                ImageUrl = "/uploads/images/" + imageFileName,
+                CreatedAt = DateTime.UtcNow
             };
 
             await _unitOfWork.Repository<Project>().AddAsync(newProject);
             return await _unitOfWork.CompleteAsync() > 0;
+        }
+        public async Task<IEnumerable<object>> GetProjectTeamMembersAsync(int projectId)
+        {
+            var project = await _unitOfWork.Repository<Project>().GetByIdAsync(projectId);
+
+            if (project == null) return null;
+
+            var memberInfo = await _unitOfWork.Repository<TeamMember>().GetEntityWithSpec(
+                m => m.UserId == project.StudentId && m.Team.ProjectName == project.Title,
+                m => m.Team.Members
+            );
+
+            if (memberInfo?.Team == null) return new List<object>();
+
+            var teamMembers = await _unitOfWork.Repository<TeamMember>().ListWithSpec(
+                m => m.TeamId == memberInfo.TeamId,
+                m => m.User
+            );
+
+            return teamMembers.Select(m => new
+            {
+                Id = m.User.Id,
+                Name = m.User.FullName,
+                PhotoUrl = m.User.Profile_Image ?? "default.png",
+                Role = m.RoleInTeam
+            });
         }
     }
 }

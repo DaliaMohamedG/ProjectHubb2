@@ -1,10 +1,13 @@
-﻿namespace DomainLayer.DTOs
+﻿using System.Text.Json.Serialization;
+
+namespace DomainLayer.DTOs
 {
     public class UserDto
     {
-        public string Id { get; set; }
+        [JsonPropertyName("user_id")]
+        public string UserId { get; set; }
+
+        [JsonPropertyName("user_name")]
         public string UserName { get; set; }
-        public string FullName { get; set; }
-        public string ProfileImage { get; set; }
     }
 }

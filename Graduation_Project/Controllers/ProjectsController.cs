@@ -22,20 +22,8 @@ namespace Graduation_Project.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll([FromQuery] string? search, [FromQuery] string? category)
         {
-            var projects = await _unitOfWork.Repository<Project>().GetAllAsync();
-
-            if (!string.IsNullOrEmpty(search))
-            {
-                projects = projects.Where(p => p.Title.Contains(search, StringComparison.OrdinalIgnoreCase)
-                                            || p.Description.Contains(search, StringComparison.OrdinalIgnoreCase));
-            }
-
-            if (!string.IsNullOrEmpty(category) && category != "All")
-            {
-                projects = projects.Where(p => p.Category.Equals(category, StringComparison.OrdinalIgnoreCase));
-            }
-
-            return Ok(projects.OrderByDescending(p => p.CreatedAt));
+            var response = await _projectService.GetAllProjectsAsync(search, category);
+            return Ok(response);
         }
 
         [HttpGet("my-projects/{studentId}")]
@@ -126,21 +114,10 @@ namespace Graduation_Project.Controllers
         [HttpGet("{projectId}/team-members")]
         public async Task<IActionResult> GetTeamMembers(int projectId)
         {
-            var project = await _unitOfWork.Repository<Project>().GetEntityWithSpec(
-                p => p.Id == projectId,
-                p => p.Team,
-                p => p.Team.Members
-            );
+            var members = await _projectService.GetProjectTeamMembersAsync(projectId);
 
-            if (project == null || project.Team == null)
-                return NotFound("No team assigned to this project");
-
-            var members = project.Team.Members.Select(m => new
-            {
-                m.User.Id,
-                FullName = m.User.FullName,
-                ProfileImage = m.User.Profile_Image
-            });
+            if (members == null)
+                return NotFound(new { message = "Project not found" });
 
             return Ok(members);
         }

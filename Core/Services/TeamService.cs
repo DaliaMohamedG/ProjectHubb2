@@ -18,30 +18,44 @@ namespace ServicesLayer
         {
             var team = new Team
             {
-                TeamName = dto.TeamName,
+                TeamName = dto.Name,
                 ProjectName = dto.ProjectName,
                 Description = dto.Description,
                 SupervisorId = dto.SupervisorId,
-                CreatedAt = DateTime.Now
+                CreatedAt = DateTime.UtcNow
             };
 
             await _unitOfWork.Repository<Team>().AddAsync(team);
 
-            await _unitOfWork.CompleteAsync();
+            var teamResult = await _unitOfWork.CompleteAsync();
+            if (teamResult <= 0) return false;
 
-            foreach (var userId in dto.MemberIds)
+            var supervisorMember = new TeamMember
             {
-                var member = new TeamMember
+                TeamId = team.Id,
+                UserId = dto.SupervisorId,
+                RoleInTeam = "Leader"
+            };
+            await _unitOfWork.Repository<TeamMember>().AddAsync(supervisorMember);
+
+            if (dto.MemberIds != null && dto.MemberIds.Any())
+            {
+                foreach (var userId in dto.MemberIds)
                 {
-                    TeamId = team.Id,
-                    UserId = userId,
-                    RoleInTeam = "Member"
-                };
-                await _unitOfWork.Repository<TeamMember>().AddAsync(member);
+                    if (userId == dto.SupervisorId) continue;
+
+                    var member = new TeamMember
+                    {
+                        TeamId = team.Id,
+                        UserId = userId,
+                        RoleInTeam = "Member"
+                    };
+                    await _unitOfWork.Repository<TeamMember>().AddAsync(member);
+                }
             }
 
-            var result = await _unitOfWork.CompleteAsync();
-            return result > 0;
+            var finalResult = await _unitOfWork.CompleteAsync();
+            return finalResult > 0;
         }
         public async Task<IEnumerable<TeamResponseDto>> GetTeamsByUserIdAsync(string userId)
         {
@@ -52,29 +66,29 @@ namespace ServicesLayer
 
             var memberShips = await _unitOfWork.Repository<TeamMember>().ListWithSpec(
                 tm => tm.UserId == userId,
-                tm => tm.Team,
-                tm => tm.Team.Members 
+                tm => tm.Team.Members
             );
-            var asMemberTeams = memberShips.Select(tm => tm.Team);
+
+            var asMemberTeams = memberShips.Select(tm => tm.Team).Where(t => t != null);
 
             var allTeams = supervisedTeams.Union(asMemberTeams).DistinctBy(t => t.Id);
 
             return allTeams.Select(t => new TeamResponseDto
             {
-                Id = t.Id,
+                Id = t.Id.ToString(),
                 Name = t.TeamName,
                 ProjectName = t.ProjectName,
+                Description = t.Description,
                 CreatedAt = t.CreatedAt,
                 SupervisorId = t.SupervisorId,
 
-                Members = t.Members?.Select(m => new TeamMemberDto
+                Members = t.Members?.Select(m => new TeamMemberResponseDto
                 {
                     Id = m.UserId,
-                    Name = m.User?.FullName,       // Flutter uses "name" not "UserName"
-                    Role = m.RoleInTeam,                  // e.g. "Student", "Assistant"
-                    Position = m.Position,          // e.g. "Flutter Developer"
-                    PhotoUrl = m.User?.Profile_Image // Flutter uses "photoUrl" not "ProfileImage"
-                }).ToList() ?? new List<TeamMemberDto>()
+                    Name = m.User?.FullName ?? "Unknown User",
+                    PhotoUrl = m.User?.Profile_Image,
+                    Role = m.RoleInTeam
+                }).ToList() ?? new List<TeamMemberResponseDto>()
             });
         }
         public async Task<bool> DeleteTeamAsync(int teamId)
