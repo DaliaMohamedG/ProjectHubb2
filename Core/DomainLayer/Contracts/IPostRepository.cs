@@ -5,7 +5,7 @@ namespace DomainLayer.Contracts
     public interface IPostRepository
     {
         Task<IEnumerable<Post>> GetAllAsync();
-        Task<Post?> GetByIdAsync(string id);
+        Task<Post?> GetByIdAsync(int id);
 
         Task<IEnumerable<Post>> GetPendingPostsAsync();
         Task<IEnumerable<Post>> GetPostsByCommunityAsync(int communityId);

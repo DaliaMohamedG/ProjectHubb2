@@ -5,13 +5,16 @@ namespace DomainLayer.DTOs
 {
     public class PostResponseDto
     {
-        public string Id { get; set; }
+        public int Id { get; set; }
 
         [JsonPropertyName("user_id")]
         public string UserId { get; set; }
 
         [JsonPropertyName("user_name")]
         public string UserName { get; set; }
+
+        [JsonPropertyName("UserImage")]
+        public string? UserImage { get; set; }
 
         [JsonPropertyName("user_avatar_color")]
         public string UserAvatarColor { get; set; } = "#DBEAFE";

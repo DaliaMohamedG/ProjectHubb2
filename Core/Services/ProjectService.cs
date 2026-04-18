@@ -28,31 +28,38 @@ namespace ServicesLayer
                 projects = projects.Where(p => p.Category.Equals(category, StringComparison.OrdinalIgnoreCase));
             }
 
-            return projects.Select(p => new ProjectResponseDto
-            {
-                Id = p.Id.ToString(),
-                Title = p.Title,
-                Description = p.Description,
-                AuthorId = p.StudentId,
-                AuthorName = p.Student?.FullName ?? "Unknown User",
-                Category = p.Category,
-                Tags = p.TechnologyUsed?.Split(',').Select(t => t.Trim()).ToList() ?? new List<string>(),
-                Images = new List<string> { p.ImageUrl },
-                GithubUrl = p.ProjectFilePath,
-                CreatedAt = p.CreatedAt
-            }).OrderByDescending(p => p.CreatedAt);
+            return projects.Select(p => MapToProjectResponseDto(p)).OrderByDescending(p => p.CreatedAt);
+        }
+        public async Task<IEnumerable<ProjectResponseDto>> GetMyProjectsAsync(string studentId)
+        {
+            var userMemberships = await _unitOfWork.Repository<TeamMember>()
+                .ListWithSpec(tm => tm.UserId == studentId, tm => tm.Team);
+
+            var projectNamesFromTeams = userMemberships
+                .Select(tm => tm.Team?.ProjectName)
+                .Where(name => !string.IsNullOrEmpty(name))
+                .ToList();
+
+            var projects = await _unitOfWork.Repository<Project>()
+                .ListWithSpec(
+                    p => p.StudentId == studentId || projectNamesFromTeams.Contains(p.Title),
+                    p => p.Student
+                );
+
+            return projects.Select(p => MapToProjectResponseDto(p)).OrderByDescending(p => p.CreatedAt);
         }
         public async Task<bool> UploadStudentProjectAsync(StudentProjectCreateDto dto)
         {
-            string uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads");
-            string imagesFolder = Path.Combine(uploadsFolder, "images");
-            string docsFolder = Path.Combine(uploadsFolder, "documents");
+            string wwwroot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+            string imagesFolder = Path.Combine(wwwroot, "uploads", "images");
+            string docsFolder = Path.Combine(wwwroot, "uploads", "documents");
 
             if (!Directory.Exists(imagesFolder)) Directory.CreateDirectory(imagesFolder);
             if (!Directory.Exists(docsFolder)) Directory.CreateDirectory(docsFolder);
 
-            string imageFileName = Guid.NewGuid() + "_" + dto.CoverPhoto.FileName;
+            string imageFileName = $"{Guid.NewGuid()}_{dto.CoverPhoto.FileName}";
             string imagePath = Path.Combine(imagesFolder, imageFileName);
+
             using (var stream = new FileStream(imagePath, FileMode.Create))
             {
                 await dto.CoverPhoto.CopyToAsync(stream);
@@ -61,7 +68,7 @@ namespace ServicesLayer
             string? docFileName = null;
             if (dto.ProjectDocument != null)
             {
-                docFileName = Guid.NewGuid() + "_" + dto.ProjectDocument.FileName;
+                docFileName = $"{Guid.NewGuid()}_{dto.ProjectDocument.FileName}";
                 string docPath = Path.Combine(docsFolder, docFileName);
                 using (var stream = new FileStream(docPath, FileMode.Create))
                 {
@@ -76,9 +83,10 @@ namespace ServicesLayer
                 Category = dto.Category,
                 TechnologyUsed = dto.Tags,
                 StudentId = dto.AuthorId,
-                ProjectFilePath = docFileName != null ? "/uploads/documents/" + docFileName : dto.GitHubUrl,
-                ImageUrl = "/uploads/images/" + imageFileName,
-                CreatedAt = DateTime.UtcNow
+                ImageUrl = $"/uploads/images/{imageFileName}",
+                ProjectFilePath = docFileName != null ? $"/uploads/documents/{docFileName}" : null,
+                GithubUrl = dto.GitHubUrl,
+                CreatedAt = DateTime.Now
             };
 
             await _unitOfWork.Repository<Project>().AddAsync(newProject);
@@ -109,6 +117,23 @@ namespace ServicesLayer
                 PhotoUrl = m.User.Profile_Image ?? "default.png",
                 Role = m.RoleInTeam
             });
+        }
+        private ProjectResponseDto MapToProjectResponseDto(Project p)
+        {
+            return new ProjectResponseDto
+            {
+                Id = p.Id.ToString(),
+                Title = p.Title,
+                Description = p.Description,
+                AuthorId = p.StudentId,
+                AuthorName = p.Student?.FullName ?? "Unknown User",
+                UserImage = p.Student?.Profile_Image,
+                Category = p.Category,
+                Tags = p.TechnologyUsed?.Split(',').Select(t => t.Trim()).ToList() ?? new List<string>(),
+                Images = new List<string> { p.ImageUrl },
+                GithubUrl = p.GithubUrl,
+                CreatedAt = p.CreatedAt
+            };
         }
     }
 }

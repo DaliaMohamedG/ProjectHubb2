@@ -18,7 +18,7 @@ namespace PersistenceLayer.Repositories
             .Include(p => p.Comments)
             .ToListAsync();
 
-        public async Task<Post?> GetByIdAsync(string id)
+        public async Task<Post?> GetByIdAsync(int id)
             => await _context.Posts
             .Include(p => p.Comments)
             .FirstOrDefaultAsync(p => p.Id == id);

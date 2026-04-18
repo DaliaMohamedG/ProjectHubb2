@@ -24,7 +24,9 @@ namespace ServicesLayer
                     Instituation = dto.Instituation,
                     Track = dto.Track,
                     Faculty = dto.Faculty,
-                    Profile_Image = "default.png"
+                    Profile_Image = dto.Picture,
+                    Role = dto.Role
+
                 };
                 await _unitOfWork.Repository<Student>().AddAsync(student);
             }
@@ -37,7 +39,9 @@ namespace ServicesLayer
                     Email = dto.Email,
                     Instituation = dto.Instituation,
                     Faculty = dto.Faculty,
-                    Profile_Image = "default.png"
+                    Profile_Image = dto.Picture,
+                    Role = dto.Role
+
                 };
                 await _unitOfWork.Repository<Supervisor>().AddAsync(supervisor);
             }
@@ -50,7 +54,9 @@ namespace ServicesLayer
                     Email = dto.Email,
                     Instituation = dto.Instituation,
                     Faculty = dto.Faculty,
-                    Profile_Image = "default.png"
+                    Profile_Image = dto.Picture,
+                    Role = dto.Role
+
                 };
                 await _unitOfWork.Repository<Assistant>().AddAsync(assistant);
             }

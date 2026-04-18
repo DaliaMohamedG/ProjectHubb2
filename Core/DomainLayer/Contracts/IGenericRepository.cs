@@ -12,6 +12,7 @@ namespace DomainLayer.Contracts
         Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate);
         Task<T> GetEntityWithSpec(Expression<Func<T, bool>> predicate, params Expression<Func<T, object>>[] includes);
         Task<IEnumerable<T>> ListWithSpec(Expression<Func<T, bool>> predicate, params Expression<Func<T, object>>[] includes);
+        Task<IEnumerable<T>> ListWithSpec(Expression<Func<T, bool>> predicate, string[] includes = null);
 
     }
 }

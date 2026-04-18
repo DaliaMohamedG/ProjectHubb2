@@ -23,5 +23,7 @@ namespace DomainLayer.DTOs
 
         [JsonPropertyName("role")]
         public string Role { get; set; }
+        [JsonPropertyName("picture")]
+        public string? Picture { get; set; }
     }
 }

@@ -1,6 +1,5 @@
 ﻿using DomainLayer.Contracts;
 using DomainLayer.DTOs;
-using DomainLayer.DTOs.PostDtos;
 using DomainLayer.Models;
 using ServicesAbstractionLayer;
 
@@ -28,16 +27,25 @@ namespace ServicesLayer
         }
         public async Task<IEnumerable<PostResponseDto>> GetTeamPostsAsync(int teamId, string currentUserId)
         {
+            var isMember = await _unitOfWork.Repository<TeamMember>().FindAsync(
+                tm => tm.TeamId == teamId && tm.UserId == currentUserId
+            );
+
+            if (isMember == null || !isMember.Any())
+            {
+                Console.WriteLine($"Access Denied: User {currentUserId} is not a member of Team {teamId}");
+                return new List<PostResponseDto>();
+            }
+
             var posts = await _unitOfWork.Repository<Post>().ListWithSpec(
                 p => p.TeamId == teamId,
                 p => p.User,
                 p => p.Likes,
                 p => p.Comments
-                );
+            );
 
             if (posts == null || !posts.Any())
             {
-                Console.WriteLine($"No posts found for TeamId: {teamId}");
                 return new List<PostResponseDto>();
             }
 
@@ -58,12 +66,12 @@ namespace ServicesLayer
         {
             string? imagePath = null;
 
-            if (dto.PostImage != null)
+            if (dto.PostImage != null && dto.PostImage.Length > 0)
             {
-                var folder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads/posts");
+                var folder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "posts");
                 if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
 
-                var fileName = Guid.NewGuid() + Path.GetExtension(dto.PostImage.FileName);
+                var fileName = $"{Guid.NewGuid()}{Path.GetExtension(dto.PostImage.FileName)}";
                 var fullPath = Path.Combine(folder, fileName);
 
                 using (var stream = new FileStream(fullPath, FileMode.Create))
@@ -78,17 +86,27 @@ namespace ServicesLayer
                 Content = dto.Content,
                 Visibility = dto.Visibility,
                 UserId = dto.UserId,
-                TeamId = dto.TeamId,
+                TeamId = (dto.TeamId == 0) ? null : dto.TeamId,
                 ImageUrl = imagePath,
-                CreatedAt = DateTime.Now
+                CreatedAt = DateTime.UtcNow
             };
 
             await _unitOfWork.Repository<Post>().AddAsync(post);
             return await _unitOfWork.CompleteAsync() > 0;
         }
-        public async Task<IEnumerable<PostComment>> GetCommentsByPostIdAsync(string postId)
+        public async Task<IEnumerable<CommentResponseDto>> GetCommentsByPostIdAsync(int postId)
         {
-            return await _unitOfWork.Repository<PostComment>().FindAsync(c => c.PostId == postId);
+            var comments = await _unitOfWork.Repository<PostComment>()
+                .ListWithSpec(c => c.PostId == postId);
+
+            return comments.Select(c => new CommentResponseDto
+            {
+                Id = c.Id.ToString(),
+                UserName = c.User?.FullName ?? "Unknown User",
+                UserImage = c.User?.Profile_Image,
+                Content = c.Content,
+                CreatedAt = c.CreatedAt
+            }).ToList();
         }
         public async Task<bool> AddCommentAsync(CommentCreateDto dto)
         {
@@ -103,7 +121,7 @@ namespace ServicesLayer
             await _unitOfWork.Repository<PostComment>().AddAsync(comment);
             return await _unitOfWork.CompleteAsync() > 0;
         }
-        public async Task<bool> ToggleLikeAsync(string postId, string userId)
+        public async Task<bool> ToggleLikeAsync(int postId, string userId)
         {
             var repo = _unitOfWork.Repository<Like>();
             var existingLike = await repo.GetEntityWithSpec(l => l.PostId == postId && l.UserId == userId);
@@ -122,9 +140,10 @@ namespace ServicesLayer
                 Id = p.Id,
                 UserId = p.UserId,
                 UserName = p.User?.FullName ?? "Unknown User",
+                UserImage = p.User?.Profile_Image,
                 UserAvatarColor = "#DBEAFE",
                 Content = p.Content,
-                TimeAgo = "Just now",
+                TimeAgo = p.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ss"),
                 Likes = p.Likes?.Count() ?? 0,
                 CommentsCount = p.Comments?.Count() ?? 0,
                 IsLiked = p.Likes?.Any(l => l.UserId == currentUserId) ?? false,
@@ -134,7 +153,7 @@ namespace ServicesLayer
             };
         }
 
-        public async Task<bool> DeletePostAsync(string postId, string userId)
+        public async Task<bool> DeletePostAsync(int postId, string userId)
         {
             var posts = await _unitOfWork.Repository<Post>()
                 .FindAsync(p => p.Id == postId && p.UserId == userId);
@@ -146,14 +165,23 @@ namespace ServicesLayer
             return await _unitOfWork.CompleteAsync() > 0;
         }
 
-        public Task<bool> AddCommentAsync(CommentCreateDto dto, string userId)
+        public async Task<bool> DeleteCommentAsync(int commentId, string userId)
         {
-            throw new NotImplementedException();
-        }
+            var comment = await _unitOfWork.Repository<PostComment>().GetByIdAsync(commentId);
 
-        public Task<bool> DeleteCommentAsync(string commentId, string userId)
-        {
-            throw new NotImplementedException();
+            if (comment == null)
+            {
+                return false;
+            }
+
+            if (comment.UserId != userId)
+            {
+                return false;
+            }
+
+            _unitOfWork.Repository<PostComment>().Delete(comment);
+
+            return await _unitOfWork.CompleteAsync() > 0;
         }
     }
 }

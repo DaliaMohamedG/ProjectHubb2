@@ -16,6 +16,8 @@ public class ProjectResponseDto
 
     [JsonPropertyName("authorName")]
     public string AuthorName { get; set; }
+    [JsonPropertyName("UserImage")]
+    public string? UserImage { get; set; }
 
     [JsonPropertyName("images")]
     public List<string> Images { get; set; } = new List<string>();

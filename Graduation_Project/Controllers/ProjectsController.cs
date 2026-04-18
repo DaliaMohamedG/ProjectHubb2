@@ -29,9 +29,8 @@ namespace Graduation_Project.Controllers
         [HttpGet("my-projects/{studentId}")]
         public async Task<IActionResult> GetMyProjects(string studentId)
         {
-            var myProjects = await _unitOfWork.Repository<Project>()
-                .FindAsync(p => p.StudentId == studentId);
-            return Ok(myProjects);
+            var projects = await _projectService.GetMyProjectsAsync(studentId);
+            return Ok(projects);
         }
 
         [HttpPost("upload")]
@@ -121,5 +120,6 @@ namespace Graduation_Project.Controllers
 
             return Ok(members);
         }
+
     }
 }

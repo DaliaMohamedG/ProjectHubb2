@@ -143,6 +143,8 @@ namespace PersistenceLayer
             // 8.project
             modelBuilder.Entity<Project>(entity =>
             {
+                entity.HasIndex(p => p.Title).IsUnique();
+
                 entity.HasOne(p => p.Supervisor)
                       .WithMany(s => s.Projects)
                       .HasForeignKey(p => p.AssignedSupervisorId)

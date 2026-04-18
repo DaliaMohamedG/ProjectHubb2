@@ -39,5 +39,18 @@ namespace PersistenceLayer.Repositories
             }
             return await query.Where(predicate).ToListAsync();
         }
+
+        public async Task<IEnumerable<T>> ListWithSpec(Expression<Func<T, bool>> predicate, string[] includes = null)
+        {
+            IQueryable<T> query = _context.Set<T>();
+            if (includes != null)
+            {
+                foreach (var include in includes)
+                {
+                    query = query.Include(include);
+                }
+            }
+            return await query.Where(predicate).ToListAsync();
+        }
     }
 }

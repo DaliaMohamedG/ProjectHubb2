@@ -1,5 +1,4 @@
 ﻿using DomainLayer.DTOs;
-using DomainLayer.DTOs.PostDtos;
 using Microsoft.AspNetCore.Mvc;
 using ServicesAbstractionLayer;
 
@@ -38,7 +37,7 @@ namespace Graduation_Project.Controllers
         }
 
         [HttpPost("posts")]
-        public async Task<IActionResult> Create([FromForm] PostCreateDto dto, string userId)
+        public async Task<IActionResult> Create([FromForm] PostCreateDto dto)
         {
             var result = await _communityService.CreatePostAsync(dto);
             if (!result) return BadRequest(new { message = "Error creating post" });
@@ -46,26 +45,51 @@ namespace Graduation_Project.Controllers
         }
 
         [HttpGet("posts/{postId}/comments")]
-        public async Task<IActionResult> GetComments(string postId)
+        public async Task<IActionResult> GetComments(int postId)
         {
             var comments = await _communityService.GetCommentsByPostIdAsync(postId);
             return Ok(comments);
         }
 
         [HttpPost("comments")]
-        public async Task<IActionResult> AddComment([FromBody] CommentCreateDto dto,string userId)
+        public async Task<IActionResult> AddComment([FromBody] CommentCreateDto dto)
         {
-            var result = await _communityService.AddCommentAsync(dto, userId);
+            var result = await _communityService.AddCommentAsync(dto);
             if (!result) return BadRequest(new { message = "Error adding comment" });
             return Ok(new { message = "Comment added" });
         }
 
         [HttpPost("posts/{postId}/like")]
-        public async Task<IActionResult> LikePost(string postId, [FromBody] string userId)
+        public async Task<IActionResult> LikePost(int postId, [FromBody] string userId)
         {
             var result = await _communityService.ToggleLikeAsync(postId, userId);
             return Ok(new { success = result });
         }
 
+        [HttpDelete("posts/{postId}")]
+        public async Task<IActionResult> DeletePost(int postId, [FromQuery] string userId)
+        {
+            var result = await _communityService.DeletePostAsync(postId, userId);
+
+            if (!result)
+            {
+                return NotFound("Post not found or you're not authorized to delete it.");
+            }
+
+            return Ok(new { message = "Post deleted successfully" });
+        }
+
+        [HttpDelete("comments/{commentId}")]
+        public async Task<IActionResult> DeleteComment(int commentId, [FromQuery] string userId)
+        {
+            var result = await _communityService.DeleteCommentAsync(commentId, userId);
+
+            if (!result)
+            {
+                return NotFound("Comment not found or you're not authorized to delete it.");
+            }
+
+            return Ok(new { message = "Comment deleted successfully" });
+        }
     }
 }
