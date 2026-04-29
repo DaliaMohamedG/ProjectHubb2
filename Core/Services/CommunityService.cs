@@ -1,5 +1,6 @@
 ﻿using DomainLayer.Contracts;
 using DomainLayer.DTOs;
+using DomainLayer.DTOs.CommunityDtos;
 using DomainLayer.Models;
 using ServicesAbstractionLayer;
 
@@ -135,6 +136,7 @@ namespace ServicesLayer
         }
         private PostResponseDto MapToPostDto(Post p, string currentUserId)
         {
+            var baseUrl = "http://projecthubb.runasp.net";
             return new PostResponseDto
             {
                 Id = p.Id,
@@ -148,7 +150,7 @@ namespace ServicesLayer
                 CommentsCount = p.Comments?.Count() ?? 0,
                 IsLiked = p.Likes?.Any(l => l.UserId == currentUserId) ?? false,
                 LikedByUserIds = p.Likes?.Select(l => l.UserId).ToList() ?? new List<string>(),
-                AttachmentName = p.ImageUrl,
+                PostImageUrl = string.IsNullOrEmpty(p.ImageUrl) ? null : baseUrl + p.ImageUrl,
                 Visibility = p.Visibility?.ToLower() ?? "public"
             };
         }

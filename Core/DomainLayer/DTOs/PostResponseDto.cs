@@ -1,5 +1,4 @@
 ﻿using System.Text.Json.Serialization;
-using Microsoft.AspNetCore.Http;
 
 namespace DomainLayer.DTOs
 {
@@ -31,15 +30,13 @@ namespace DomainLayer.DTOs
         [JsonPropertyName("comments_count")]
         public int CommentsCount { get; set; }
 
-        [JsonPropertyName("attachment_name")]
-        public string? AttachmentName { get; set; }
-
         [JsonPropertyName("is_liked")]
         public bool IsLiked { get; set; }
 
         [JsonPropertyName("liked_by_user_ids")]
         public List<string> LikedByUserIds { get; set; } = new();
-        public IFormFile? PostImage { get; set; }
+        [JsonPropertyName("post_image")]
+        public string? PostImageUrl { get; set; }
         public string Visibility { get; set; } = "public";
     }
 }

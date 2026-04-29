@@ -1,4 +1,4 @@
-﻿namespace DomainLayer.DTOs
+﻿namespace DomainLayer.DTOs.CommunityDtos
 {
     public class CommentCreateDto
     {

@@ -1,5 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Http;
 
 namespace DomainLayer.DTOs
 {
@@ -7,17 +7,17 @@ namespace DomainLayer.DTOs
     {
         public string Title { get; set; }
         public string Description { get; set; }
-        public string Tags { get; set; } 
+        public string Tags { get; set; }
         public string Category { get; set; }
 
         [JsonPropertyName("githubUrl")]
         public string GitHubUrl { get; set; }
-        public IFormFile CoverPhoto { get; set; }
+        public List<IFormFile> CoverPhoto { get; set; } = new List<IFormFile>();
 
-        [JsonPropertyName("documentUrl")] 
+        [JsonPropertyName("documentUrl")]
         public IFormFile? ProjectDocument { get; set; }
 
-        [JsonPropertyName("authorId")] 
+        [JsonPropertyName("authorId")]
         public string AuthorId { get; set; }
     }
 }

@@ -56,13 +56,21 @@ namespace ServicesLayer
 
             if (!Directory.Exists(imagesFolder)) Directory.CreateDirectory(imagesFolder);
             if (!Directory.Exists(docsFolder)) Directory.CreateDirectory(docsFolder);
+            List<string> savedImagePaths = new List<string>();
 
-            string imageFileName = $"{Guid.NewGuid()}_{dto.CoverPhoto.FileName}";
-            string imagePath = Path.Combine(imagesFolder, imageFileName);
-
-            using (var stream = new FileStream(imagePath, FileMode.Create))
+            if (dto.CoverPhoto != null && dto.CoverPhoto.Any())
             {
-                await dto.CoverPhoto.CopyToAsync(stream);
+                foreach (var file in dto.CoverPhoto)
+                {
+                    string fileName = $"{Guid.NewGuid()}_{file.FileName}";
+                    string path = Path.Combine(imagesFolder, fileName);
+
+                    using (var stream = new FileStream(path, FileMode.Create))
+                    {
+                        await file.CopyToAsync(stream);
+                    }
+                    savedImagePaths.Add($"/uploads/images/{fileName}");
+                }
             }
 
             string? docFileName = null;
@@ -83,7 +91,7 @@ namespace ServicesLayer
                 Category = dto.Category,
                 TechnologyUsed = dto.Tags,
                 StudentId = dto.AuthorId,
-                ImageUrl = $"/uploads/images/{imageFileName}",
+                ImageUrl = string.Join(",", savedImagePaths),
                 ProjectFilePath = docFileName != null ? $"/uploads/documents/{docFileName}" : null,
                 GithubUrl = dto.GitHubUrl,
                 CreatedAt = DateTime.Now
@@ -120,6 +128,7 @@ namespace ServicesLayer
         }
         private ProjectResponseDto MapToProjectResponseDto(Project p)
         {
+            var baseUrl = "http://projecthubb.runasp.net";
             return new ProjectResponseDto
             {
                 Id = p.Id.ToString(),
@@ -127,12 +136,13 @@ namespace ServicesLayer
                 Description = p.Description,
                 AuthorId = p.StudentId,
                 AuthorName = p.Student?.FullName ?? "Unknown User",
-                UserImage = p.Student?.Profile_Image,
+                UserImage = string.IsNullOrEmpty(p.Student?.Profile_Image) ? null : (p.Student.Profile_Image.StartsWith("http") ? p.Student.Profile_Image : baseUrl + (p.Student.Profile_Image.StartsWith("/") ? "" : "/") + p.Student.Profile_Image),
                 Category = p.Category,
                 Tags = p.TechnologyUsed?.Split(',').Select(t => t.Trim()).ToList() ?? new List<string>(),
-                Images = new List<string> { p.ImageUrl },
+                Images = string.IsNullOrEmpty(p.ImageUrl) ? new List<string>() : new List<string> { baseUrl + (p.ImageUrl.StartsWith("/") ? "" : "/") + p.ImageUrl },
                 GithubUrl = p.GithubUrl,
-                CreatedAt = p.CreatedAt
+                CreatedAt = p.CreatedAt,
+                DocumentUrl = string.IsNullOrEmpty(p.ProjectFilePath) ? null : baseUrl + (p.ProjectFilePath.StartsWith("/") ? "" : "/") + p.ProjectFilePath
             };
         }
     }

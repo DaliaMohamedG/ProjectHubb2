@@ -10,7 +10,6 @@ namespace DomainLayer.Models
         public string TechnologyUsed { get; set; }
         public string ProjectFilePath { get; set; }
         public string GithubUrl { get; set; }
-
         public string? ImageUrl { get; set; }
         public string? Category { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.Now;

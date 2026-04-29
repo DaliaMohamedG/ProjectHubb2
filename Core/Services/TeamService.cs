@@ -23,7 +23,7 @@ namespace ServicesLayer
             {
                 Id = u.Id,
                 FullName = u.FullName,
-                Profile_Image = u.Profile_Image 
+                Profile_Image = u.Profile_Image
             });
         }
 
@@ -53,15 +53,17 @@ namespace ServicesLayer
 
             if (dto.MemberIds != null && dto.MemberIds.Any())
             {
+                var studentInfo = await _unitOfWork.Repository<Student>().ListWithSpec(s => dto.MemberIds.Contains(s.Id));
                 foreach (var userId in dto.MemberIds)
                 {
                     if (userId == dto.SupervisorId) continue;
+                    var studentTrack = studentInfo.FirstOrDefault(s => s.Id == userId)?.Track;
 
                     var member = new TeamMember
                     {
                         TeamId = team.Id,
                         UserId = userId,
-                        RoleInTeam = "Member"
+                        RoleInTeam = studentTrack ?? "Assistant"
                     };
                     await _unitOfWork.Repository<TeamMember>().AddAsync(member);
                 }
@@ -70,31 +72,33 @@ namespace ServicesLayer
             var finalResult = await _unitOfWork.CompleteAsync();
             return finalResult > 0;
         }
-        //public async Task<IEnumerable<TeamResponseDto>> GetTeamsByUserIdAsync(string userId)
-        //{
-        //    var allTeams = await _unitOfWork.Repository<Team>().ListWithSpec(
-        //        t => t.SupervisorId == userId || t.Members.Any(m => m.UserId == userId),
-        //        new string[] { "Members.User" }
-        //    );
+        public async Task<IEnumerable<TeamResponseDto>> GetTeamsByUserIdAsync(string userId)
+        {
+            var allTeams = await _unitOfWork.Repository<Team>().ListWithSpec(
+                t => t.SupervisorId == userId || t.Members.Any(m => m.UserId == userId),
+                new string[] { "Members.User" }
+            );
 
-        //    return allTeams.Select(t => new TeamResponseDto
-        //    {
-        //        Id = t.Id.ToString(),
-        //        Name = t.TeamName,
-        //        ProjectName = t.ProjectName,
-        //        Description = t.Description,
-        //        CreatedAt = t.CreatedAt,
-        //        SupervisorId = t.SupervisorId,
+            return allTeams.Select(t => new TeamResponseDto
+            {
+                Id = t.Id.ToString(),
+                Name = t.TeamName,
+                ProjectName = t.ProjectName,
+                Description = t.Description,
+                CreatedAt = t.CreatedAt,
+                SupervisorId = t.SupervisorId,
 
-        //        Members = t.Members?.Select(m => new TeamMemberResponseDto
-        //        {
-        //            Id = m.UserId.ToString(),
-        //            Name = m.User?.FullName ?? "Unknown User",
-        //            PhotoUrl = m.User?.Profile_Image,
-        //            Role = m.RoleInTeam
-        //        }).ToList() ?? new List<TeamMemberResponseDto>()
-        //    });
-        //}
+                Members = t.Members?
+            .Where(m => m.RoleInTeam != "Leader")
+            .Select(m => new TeamMemberResponseDto
+            {
+                Id = m.UserId.ToString(),
+                Name = m.User?.FullName ?? "Unknown User",
+                PhotoUrl = m.User?.Profile_Image,
+                Role = m.RoleInTeam
+            }).ToList() ?? new List<TeamMemberResponseDto>()
+            });
+        }
 
         public async Task<bool> DeleteTeamAsync(int teamId)
         {
@@ -129,10 +133,14 @@ namespace ServicesLayer
         //}
         public async Task<bool> AddMembersToTeamAsync(AddTeamMembersDto dto)
         {
+            if (!int.TryParse(dto.TeamId, out int teamIdInt))
+            {
+                return false;
+            }
             var existingMemberIds = (await _unitOfWork.Repository<TeamMember>()
-                .FindAsync(tm => tm.TeamId == dto.TeamId))
-                .Select(tm => tm.UserId)
-                .ToList();
+        .FindAsync(tm => tm.TeamId == teamIdInt))
+        .Select(tm => tm.UserId)
+        .ToList();
 
             foreach (var userId in dto.MemberIds)
             {
@@ -140,9 +148,9 @@ namespace ServicesLayer
                 {
                     var newMember = new TeamMember
                     {
-                        TeamId = dto.TeamId,
+                        TeamId = teamIdInt,
                         UserId = userId,
-                        RoleInTeam = "Member" 
+                        RoleInTeam = "Member"
                     };
                     await _unitOfWork.Repository<TeamMember>().AddAsync(newMember);
                 }
@@ -167,7 +175,7 @@ namespace ServicesLayer
                 CreatedAt = team.CreatedAt,
                 SupervisorId = team.SupervisorId,
                 SupervisorName = team.Supervisor?.FullName ?? "Unknown",
-                ActiveProjects = 1 
+                ActiveProjects = 1
             };
 
             foreach (var m in team.Members)
@@ -181,15 +189,12 @@ namespace ServicesLayer
                 };
 
                 if (m.User?.Role?.ToLower() == "assistant")
-                {
                     response.Assistants.Add(memberDto);
-                }
-                else
-                {
-                    response.Members.Add(memberDto);
-                }
-            }
 
+                else if (m.User?.Role?.ToLower() == "user")
+                    response.Members.Add(memberDto);
+
+            }
             return response;
         }
     }

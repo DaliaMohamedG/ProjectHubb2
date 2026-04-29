@@ -13,37 +13,64 @@ namespace ServicesLayer
         public async Task<bool> SyncUserAsync(UserSyncDto dto)
         {
             var incomingRole = dto.Role.ToLower();
+            string? finalPicture = dto.Picture;
+
+            if (!string.IsNullOrEmpty(dto.Picture) && dto.Picture.Contains("com.example.onboard"))
+            {
+                finalPicture = null;
+            }
 
             if (incomingRole == "user" || incomingRole == "student")
             {
-                var student = new Student
-                {
-                    Id = dto.Id,
-                    FullName = dto.FullName,
-                    Email = dto.Email,
-                    Instituation = dto.Instituation,
-                    Track = dto.Track,
-                    Faculty = dto.Faculty,
-                    Profile_Image = dto.Picture,
-                    Role = dto.Role
+                var existingStudent = await _unitOfWork.Repository<Student>().GetByIdAsync(dto.Id);
 
-                };
-                await _unitOfWork.Repository<Student>().AddAsync(student);
+                if (existingStudent != null)
+                {
+                    existingStudent.FullName = dto.FullName;
+                    existingStudent.Profile_Image = finalPicture;
+                    existingStudent.Track = dto.Track;
+                    _unitOfWork.Repository<Student>().Update(existingStudent);
+                }
+                else
+                {
+                    var student = new Student
+                    {
+                        Id = dto.Id,
+                        FullName = dto.FullName,
+                        Email = dto.Email,
+                        Instituation = dto.Instituation,
+                        Track = dto.Track,
+                        Faculty = dto.Faculty,
+                        Profile_Image = finalPicture,
+                        Role = dto.Role
+                    };
+                    await _unitOfWork.Repository<Student>().AddAsync(student);
+                }
             }
+
             else if (incomingRole == "supervisor" || incomingRole == "doctor")
             {
-                var supervisor = new Supervisor
+                var existingSup = await _unitOfWork.Repository<Supervisor>().GetByIdAsync(dto.Id);
+                if (existingSup != null)
                 {
-                    Id = dto.Id,
-                    FullName = dto.FullName,
-                    Email = dto.Email,
-                    Instituation = dto.Instituation,
-                    Faculty = dto.Faculty,
-                    Profile_Image = dto.Picture,
-                    Role = dto.Role
-
-                };
-                await _unitOfWork.Repository<Supervisor>().AddAsync(supervisor);
+                    existingSup.FullName = dto.FullName;
+                    existingSup.Profile_Image = finalPicture;
+                    _unitOfWork.Repository<Supervisor>().Update(existingSup);
+                }
+                else
+                {
+                    var supervisor = new Supervisor
+                    {
+                        Id = dto.Id,
+                        FullName = dto.FullName,
+                        Email = dto.Email,
+                        Instituation = dto.Instituation,
+                        Faculty = dto.Faculty,
+                        Profile_Image = finalPicture,
+                        Role = dto.Role
+                    };
+                    await _unitOfWork.Repository<Supervisor>().AddAsync(supervisor);
+                }
             }
             else if (incomingRole == "assistant")
             {
@@ -54,15 +81,15 @@ namespace ServicesLayer
                     Email = dto.Email,
                     Instituation = dto.Instituation,
                     Faculty = dto.Faculty,
-                    Profile_Image = dto.Picture,
+                    Profile_Image = finalPicture,
                     Role = dto.Role
-
                 };
                 await _unitOfWork.Repository<Assistant>().AddAsync(assistant);
             }
 
             var result = await _unitOfWork.CompleteAsync();
-            return result > 0;
+            return result >= 0;
         }
+
     }
 }

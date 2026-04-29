@@ -49,12 +49,12 @@ namespace Graduation_Project.Controllers
         //    return Ok(members);
         //}
 
-        //[HttpGet("my-teams/{userId}")]
-        //public async Task<IActionResult> GetMyTeams(string userId)
-        //{
-        //    var teams = await _teamService.GetTeamsByUserIdAsync(userId);
-        //    return Ok(teams);
-        //}
+        [HttpGet("my-teams/{userId}")]
+        public async Task<IActionResult> GetMyTeams(string userId)
+        {
+            var teams = await _teamService.GetTeamsByUserIdAsync(userId);
+            return Ok(teams);
+        }
 
         [HttpDelete("{teamId}")]
         public async Task<IActionResult> DeleteTeam(int teamId)
