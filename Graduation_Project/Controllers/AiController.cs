@@ -28,5 +28,21 @@ namespace Graduation_Project.Controllers
 
             return Ok(meta);
         }
+        // POST api/ai/recommendation-result
+        [HttpPost("recommendation-result")]
+        public IActionResult ReceiveRecommendationResult([FromBody] AiRecommendationResultDto dto)
+        {
+            if (dto == null || dto.Ideas == null || !dto.Ideas.Any())
+                return BadRequest(new { message = "No recommendation data received." });
+
+            // Just receive and return it to the Flutter app
+            return Ok(new
+            {
+                message = "Recommendation received successfully.",
+                scenario = dto.Scenario,
+                ideasCount = dto.Ideas.Count,
+                data = dto
+            });
+        }
     }
 }

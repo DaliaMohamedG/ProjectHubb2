@@ -48,10 +48,11 @@ namespace ServicesLayer
             // Step 3: Create the task
             var task = new TeamTasks
             {
+                Id = Guid.NewGuid().ToString(),  // ← ADD THIS
                 Title = dto.Title,
                 Description = dto.Description,
                 DueDate = dto.DueDate,
-                Status = false,           
+                Status = false,
                 TeamId = dto.TeamId
             };
 
@@ -66,6 +67,7 @@ namespace ServicesLayer
                 {
                     var assignment = new TaskAssignment
                     {
+                        Id = Guid.NewGuid().ToString(),  
                         TaskId = task.Id,
                         StudentId = studentId
                     };
@@ -108,6 +110,7 @@ namespace ServicesLayer
                 {
                     await _unitOfWork.Repository<TaskAssignment>().AddAsync(new TaskAssignment
                     {
+                        Id = Guid.NewGuid().ToString(), 
                         TaskId = taskId,
                         StudentId = studentId
                     });

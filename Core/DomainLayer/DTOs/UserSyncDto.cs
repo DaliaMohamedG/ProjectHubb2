@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using Microsoft.AspNetCore.Http;
+using System.Text.Json.Serialization;
 namespace DomainLayer.DTOs
 {
     public class UserSyncDto
@@ -24,6 +25,6 @@ namespace DomainLayer.DTOs
         [JsonPropertyName("role")]
         public string Role { get; set; }
         [JsonPropertyName("picture")]
-        public string? Picture { get; set; }
+        public IFormFile? Picture { get; set; }
     }
 }

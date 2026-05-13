@@ -32,7 +32,7 @@ namespace Graduation_Project
             builder.Services.AddScoped<ServicesAbstractionLayer.IAuthService, ServicesLayer.AuthService>();
             builder.Services.AddScoped<ITaskRepository, TaskRepository>();
             builder.Services.AddScoped<ITaskService, TaskService>();
-            // builder.Services.AddHttpClient<IAiService, AiService>();
+            builder.Services.AddHttpClient<IAiService, AiService>();
 
             var app = builder.Build();
 

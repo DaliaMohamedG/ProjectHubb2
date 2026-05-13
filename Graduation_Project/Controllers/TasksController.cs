@@ -1,4 +1,5 @@
 ﻿using DomainLayer.DTOs.Task_Dtos;
+using DomainLayer.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -19,9 +20,11 @@ namespace Graduation_Project.Controllers
             _taskService = taskService;
         }
 
+        private string GetUserId(string? userId) =>
+            userId ?? "anonymous";
         // ── reads the current user's ID from the JWT token ──
-        private string CurrentUserId =>
-            User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        // private string CurrentUserId =>
+        //   User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
 
         // ═══════════════════════════════════════════════════════
@@ -29,7 +32,7 @@ namespace Graduation_Project.Controllers
         // ═══════════════════════════════════════════════════════
 
         // Get full task details (Task Details screen)
-        [HttpGet("{id}")]
+        [HttpGet("GetTask {id}")]
         public async Task<IActionResult> GetTask(string id)
         {
             var task = await _taskService.GetTaskByIdAsync(id);
@@ -50,58 +53,55 @@ namespace Graduation_Project.Controllers
         }
 
         // Student gets their own assigned tasks (My Work screen)
-        [HttpGet("my-tasks")]
+        [HttpGet("my-tasks {userId}")]
         //[Authorize(Roles = "Student")]
-        public async Task<IActionResult> GetMyTasks()
+        public async Task<IActionResult> GetMyTasks( string userId)
         {
-            var tasks = await _taskService.GetTasksByStudentAsync(CurrentUserId);
+            var tasks = await _taskService.GetTasksByStudentAsync(userId);
             return Ok(tasks);
         }
 
         // Supervisor gets all tasks across their teams (All Tasks screen)
-        [HttpGet("all-tasks")]
-        [Authorize(Roles = "Supervisor")]
-        public async Task<IActionResult> GetAllTasksBySupervisor()
+        [HttpGet("all-tasks-{supervisorId}")]
+        //[Authorize(Roles = "Supervisor")]
+        public async Task<IActionResult> GetAllTasksBySupervisor(string supervisorId)
         {
-            var tasks = await _taskService.GetTasksBySupervisorAsync(CurrentUserId);
+            var tasks = await _taskService.GetTasksBySupervisorAsync(supervisorId);
             return Ok(tasks);
         }
 
         // Supervisor creates/assigns a new task (Assign Task screen)
         [HttpPost]
         //[Authorize(Roles = "Supervisor")]
-        public async Task<IActionResult> CreateTask([FromBody] CreateTaskDTO dto)
+        public async Task<IActionResult> CreateTask([FromBody] CreateTaskDTO dto, [FromQuery] string supervisorId)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
             try
             {
-                var task = await _taskService.CreateTaskAsync(CurrentUserId, dto);
-
+                var task = await _taskService.CreateTaskAsync(supervisorId, dto);
                 return CreatedAtAction(nameof(GetTask), new { id = task.Id }, task);
             }
             catch (UnauthorizedAccessException ex)
             {
-                // Supervisor tried to assign to a team that's not theirs
-                return Forbid(ex.Message);
+                return StatusCode(403, new { message = ex.Message });
             }
             catch (InvalidOperationException ex)
             {
-                // Student not in the team
                 return BadRequest(new { message = ex.Message });
             }
         }
 
         // Supervisor updates a task
-        [HttpPut("{id}")]
+        [HttpPut("Update{id}")]
         //[Authorize(Roles = "Supervisor")]
-        public async Task<IActionResult> UpdateTask(string id, [FromBody] UpdateTaskDTO dto)
+        public async Task<IActionResult> UpdateTask(string id, [FromBody] UpdateTaskDTO dto, [FromQuery] string supervisorId)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var result = await _taskService.UpdateTaskAsync(id, CurrentUserId, dto);
+            var result = await _taskService.UpdateTaskAsync(id, supervisorId, dto);
 
             if (result == null)
                 return NotFound(new { message = "Task not found or you don't have permission." });
@@ -112,9 +112,9 @@ namespace Graduation_Project.Controllers
         // Supervisor deletes a task
         [HttpDelete("{id}")]
         //[Authorize(Roles = "Supervisor")]
-        public async Task<IActionResult> DeleteTask(string id)
+        public async Task<IActionResult> DeleteTask(string id, [FromQuery] string supervisorId)
         {
-            var success = await _taskService.DeleteTaskAsync(id, CurrentUserId);
+            var success = await _taskService.DeleteTaskAsync(id, supervisorId);
 
             if (!success)
                 return NotFound(new { message = "Task not found or you don't have permission." });
@@ -125,12 +125,12 @@ namespace Graduation_Project.Controllers
         // Student submits their solution (Submit Task screen)
         [HttpPost("{id}/submit")]
         //[Authorize(Roles = "Student")]
-        public async Task<IActionResult> SubmitTask(string id, [FromBody] SubmitTaskDTO dto)
+        public async Task<IActionResult> SubmitTask(string id, [FromBody] SubmitTaskDTO dto, [FromQuery] string studentId)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var success = await _taskService.SubmitTaskAsync(id, CurrentUserId, dto);
+            var success = await _taskService.SubmitTaskAsync(id, studentId, dto);
 
             if (!success)
                 return BadRequest(new { message = "Could not submit. Check task ID or your team membership." });
@@ -142,12 +142,12 @@ namespace Graduation_Project.Controllers
         // Updates task status to "Done" or "NeedsRevision"
         [HttpPost("{id}/feedback")]
         //[Authorize(Roles = "Supervisor")]
-        public async Task<IActionResult> GiveFeedback(string id, [FromBody] TaskFeedbackDTO dto)
+        public async Task<IActionResult> GiveFeedback(string id, [FromBody] TaskFeedbackDTO dto, [FromQuery] string supervisorId)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var success = await _taskService.GiveFeedbackAsync(id, CurrentUserId, dto);
+            var success = await _taskService.GiveFeedbackAsync(id, supervisorId, dto);
 
             if (!success)
                 return NotFound(new { message = "Task not found or you don't have permission." });
@@ -162,14 +162,14 @@ namespace Graduation_Project.Controllers
 
         // Any user adds a comment on a task (Task Details screen)
         [HttpPost("{id}/comments")]
-        public async Task<IActionResult> AddComment(string id, [FromBody] AddTaskCommentDTO dto)
+        public async Task<IActionResult> AddComment(string id, [FromBody] AddTaskCommentDTO dto, [FromQuery] string userId)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
             try
             {
-                var comment = await _taskService.AddCommentAsync(id, CurrentUserId, dto);
+                var comment = await _taskService.AddCommentAsync(id, userId, dto);
                 return Ok(comment);
             }
             catch (KeyNotFoundException ex)
@@ -180,9 +180,9 @@ namespace Graduation_Project.Controllers
 
         // User deletes their own comment
         [HttpDelete("comments/{commentId}")]
-        public async Task<IActionResult> DeleteComment(int commentId)
+        public async Task<IActionResult> DeleteComment(int commentId , [FromQuery] string userId)
         {
-            var success = await _taskService.DeleteCommentAsync(commentId, CurrentUserId);
+            var success = await _taskService.DeleteCommentAsync(commentId, userId);
 
             if (!success)
                 return NotFound(new { message = "Comment not found or you don't own it." });

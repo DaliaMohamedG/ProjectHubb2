@@ -31,11 +31,7 @@ namespace Graduation_Project.Controllers
             if (dto == null) return BadRequest("Data not completed");
 
             var result = await _teamService.CreateTeamAsync(dto);
-
-            if (result)
-                return Ok(new { message = "Team created successfully" });
-
-            return BadRequest(new { message = "Error creating team" });
+            return Ok(result);
         }
 
         //[HttpGet("members-by-name/{teamName}")]
@@ -72,10 +68,7 @@ namespace Graduation_Project.Controllers
 
             var result = await _teamService.AddMembersToTeamAsync(dto);
 
-            if (!result)
-                return BadRequest("No new members were added. They might be already in the team.");
-
-            return Ok(new { Message = "Members added successfully" });
+            return Ok(result);
         }
         [HttpGet("{id}/details")]
         public async Task<IActionResult> GetTeamDetails(int id)
@@ -89,3 +82,4 @@ namespace Graduation_Project.Controllers
         }
     }
 }
+

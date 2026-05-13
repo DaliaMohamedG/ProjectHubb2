@@ -26,8 +26,7 @@ namespace ServicesLayer
                 Profile_Image = u.Profile_Image
             });
         }
-
-        public async Task<bool> CreateTeamAsync(CreateTeamDto dto)
+        public async Task<object> CreateTeamAsync(CreateTeamDto dto)
         {
             var team = new Team
             {
@@ -53,9 +52,20 @@ namespace ServicesLayer
 
             if (dto.MemberIds != null && dto.MemberIds.Any())
             {
+                var existingGlobalMembers = (await _unitOfWork.Repository<TeamMember>()
+                    .FindAsync(tm => dto.MemberIds.Contains(tm.UserId))).Select(tm => tm.UserId).ToList();
+
                 var studentInfo = await _unitOfWork.Repository<Student>().ListWithSpec(s => dto.MemberIds.Contains(s.Id));
+
+                var skippedStudents = new List<string>();
                 foreach (var userId in dto.MemberIds)
                 {
+                    if (existingGlobalMembers.Contains(userId))
+                    {
+                        var name = studentInfo.FirstOrDefault(s => s.Id == userId)?.FullName ?? userId;
+                        skippedStudents.Add(name);
+                        continue;
+                    }
                     if (userId == dto.SupervisorId) continue;
                     var studentTrack = studentInfo.FirstOrDefault(s => s.Id == userId)?.Track;
 
@@ -67,10 +77,16 @@ namespace ServicesLayer
                     };
                     await _unitOfWork.Repository<TeamMember>().AddAsync(member);
                 }
+                if (skippedStudents.Any())
+                {
+                    var message = $"The students were successfully added, except for: {string.Join(", ", skippedStudents)}, they are already enrolled in other teams";
+                    return new { success = true, warning = message };
+                }
             }
 
             var finalResult = await _unitOfWork.CompleteAsync();
-            return finalResult > 0;
+            if (finalResult > 0) return new { Success = true, Message = "Team created successfully!" };
+            return new { Success = false, Message = "Failed to create team." };
         }
         public async Task<IEnumerable<TeamResponseDto>> GetTeamsByUserIdAsync(string userId)
         {
@@ -78,6 +94,7 @@ namespace ServicesLayer
                 t => t.SupervisorId == userId || t.Members.Any(m => m.UserId == userId),
                 new string[] { "Members.User" }
             );
+            var baseUrl = "https://projecthubb.runasp.net";
 
             return allTeams.Select(t => new TeamResponseDto
             {
@@ -87,19 +104,18 @@ namespace ServicesLayer
                 Description = t.Description,
                 CreatedAt = t.CreatedAt,
                 SupervisorId = t.SupervisorId,
-
+                SupervisorPhotoUrl = string.IsNullOrEmpty(t.Supervisor.Profile_Image) ? null : baseUrl + t.Supervisor.Profile_Image,
                 Members = t.Members?
             .Where(m => m.RoleInTeam != "Leader")
             .Select(m => new TeamMemberResponseDto
             {
                 Id = m.UserId.ToString(),
                 Name = m.User?.FullName ?? "Unknown User",
-                PhotoUrl = m.User?.Profile_Image,
+                PhotoUrl = string.IsNullOrEmpty(m.User.Profile_Image) ? null : baseUrl + m.User.Profile_Image,
                 Role = m.RoleInTeam
             }).ToList() ?? new List<TeamMemberResponseDto>()
             });
         }
-
         public async Task<bool> DeleteTeamAsync(int teamId)
         {
             var teamRepo = _unitOfWork.Repository<Team>();
@@ -131,31 +147,54 @@ namespace ServicesLayer
         //        Role = m.RoleInTeam
         //    }).ToList();
         //}
-        public async Task<bool> AddMembersToTeamAsync(AddTeamMembersDto dto)
+        public async Task<object> AddMembersToTeamAsync(AddTeamMembersDto dto)
         {
             if (!int.TryParse(dto.TeamId, out int teamIdInt))
             {
-                return false;
+                return new { success = false, message = "Invalid Team ID" };
             }
-            var existingMemberIds = (await _unitOfWork.Repository<TeamMember>()
-        .FindAsync(tm => tm.TeamId == teamIdInt))
-        .Select(tm => tm.UserId)
-        .ToList();
+
+            var existingGlobalMembers = (await _unitOfWork.Repository<TeamMember>()
+                .FindAsync(tm => dto.MemberIds.Contains(tm.UserId)))
+                .Select(tm => tm.UserId)
+                .ToList();
+
+            var studentInfo = await _unitOfWork.Repository<Student>()
+                .ListWithSpec(s => dto.MemberIds.Contains(s.Id));
+
+            var skippedStudents = new List<string>();
+            int addedCount = 0;
 
             foreach (var userId in dto.MemberIds)
             {
-                if (!existingMemberIds.Contains(userId))
+                if (existingGlobalMembers.Contains(userId))
                 {
-                    var newMember = new TeamMember
-                    {
-                        TeamId = teamIdInt,
-                        UserId = userId,
-                        RoleInTeam = "Member"
-                    };
-                    await _unitOfWork.Repository<TeamMember>().AddAsync(newMember);
+                    var name = studentInfo.FirstOrDefault(s => s.Id == userId)?.FullName ?? userId;
+                    skippedStudents.Add(name);
+                    continue;
                 }
+
+                var newMember = new TeamMember
+                {
+                    TeamId = teamIdInt,
+                    UserId = userId,
+                    RoleInTeam = "Member"
+                };
+
+                await _unitOfWork.Repository<TeamMember>().AddAsync(newMember);
+                addedCount++;
+
             }
-            return await _unitOfWork.CompleteAsync() > 0;
+
+            var result = await _unitOfWork.CompleteAsync();
+
+            if (skippedStudents.Any())
+            {
+                string skipMessage = $"Added {addedCount} members. Skipped: {string.Join(", ", skippedStudents)} (already in other teams).";
+                return new { success = true, message = skipMessage };
+            }
+
+            return new { success = result > 0, message = result > 0 ? "Members added successfully" : "No new members were added" };
         }
         public async Task<TeamResponseDto> GetTeamDetailsAsync(int teamId)
         {
@@ -166,6 +205,7 @@ namespace ServicesLayer
 
             if (team == null) return null;
 
+            var baseUrl = "https://projecthubb.runasp.net";
             var response = new TeamResponseDto
             {
                 Id = team.Id.ToString(),
@@ -175,6 +215,7 @@ namespace ServicesLayer
                 CreatedAt = team.CreatedAt,
                 SupervisorId = team.SupervisorId,
                 SupervisorName = team.Supervisor?.FullName ?? "Unknown",
+                SupervisorPhotoUrl = string.IsNullOrEmpty(team.Supervisor.Profile_Image) ? null : baseUrl + team.Supervisor.Profile_Image,
                 ActiveProjects = 1
             };
 
@@ -184,14 +225,14 @@ namespace ServicesLayer
                 {
                     Id = m.UserId,
                     Name = m.User?.FullName ?? "Unknown",
-                    PhotoUrl = m.User?.Profile_Image,
+                    PhotoUrl = string.IsNullOrEmpty(m.User.Profile_Image) ? null : baseUrl + m.User.Profile_Image,
                     Role = m.RoleInTeam
                 };
 
                 if (m.User?.Role?.ToLower() == "assistant")
                     response.Assistants.Add(memberDto);
 
-                else if (m.User?.Role?.ToLower() == "user")
+                else if (m.User?.Role?.ToLower() == "user" || m.User?.Role?.ToLower() == "student")
                     response.Members.Add(memberDto);
 
             }
