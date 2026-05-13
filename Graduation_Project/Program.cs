@@ -1,5 +1,6 @@
 using DomainLayer.Contracts;
 using Microsoft.EntityFrameworkCore;
+using PeresentationLayer.Hubs;
 using PersistenceLayer;
 using PersistenceLayer.Repositories;
 using ServicesAbstractionLayer;
@@ -12,6 +13,16 @@ namespace Graduation_Project
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+
+            #region Notification
+            builder.Services.AddSignalR(options =>
+            {
+                options.EnableDetailedErrors = true;
+                options.KeepAliveInterval = TimeSpan.FromSeconds(15);
+                options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
+            });
+            builder.Services.AddScoped<NotificationService>();
+            #endregion
 
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
@@ -34,7 +45,26 @@ namespace Graduation_Project
             builder.Services.AddScoped<ITaskService, TaskService>();
             builder.Services.AddHttpClient<IAiService, AiService>();
 
+            #region Notification
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("CorsPolicy", policy =>
+                {
+                    policy
+                        .AllowAnyOrigin()   // ?? ??? domain ??????? ?? ??????
+                        .AllowAnyMethod()
+                        .AllowAnyHeader();
+                    // ??????: ?? AllowAnyOrigin ?? ?????? ???? AllowCredentials
+                    // ?? Flutter ?? ?????? credentials ??? ????
+                });
+            });
+            #endregion
+
             var app = builder.Build();
+
+            #region Notification
+            app.UseCors("CorsPolicy");  // ? ???? ???? ??? UseAuthorization
+            #endregion
 
             // Configure the HTTP request pipeline.
             //if (app.Environment.IsDevelopment())
@@ -46,9 +76,11 @@ namespace Graduation_Project
             app.UseHttpsRedirection();
 
             app.UseAuthorization();
-
-
             app.MapControllers();
+
+            #region Notification
+            app.MapHub<NotificationHub>("/notificationHub");
+            #endregion
 
             app.Run();
         }

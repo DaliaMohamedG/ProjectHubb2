@@ -3,17 +3,22 @@ using DomainLayer.DTOs;
 using DomainLayer.DTOs.CommunityDtos;
 using DomainLayer.Models;
 using ServicesAbstractionLayer;
+using SixLabors.ImageSharp;
 
 namespace ServicesLayer
 {
     public class CommunityService : ICommunityService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly NotificationService _notificationService;
 
-        public CommunityService(IUnitOfWork unitOfWork)
+        public CommunityService(IUnitOfWork unitOfWork, NotificationService notificationService)
         {
             _unitOfWork = unitOfWork;
+            _notificationService = notificationService;
         }
+
+
 
         public async Task<IEnumerable<PostResponseDto>> GetTimelinePostsAsync(string currentUserId)
         {
@@ -72,12 +77,15 @@ namespace ServicesLayer
                 var folder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "posts");
                 if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
 
-                var fileName = $"{Guid.NewGuid()}{Path.GetExtension(dto.PostImage.FileName)}";
-                var fullPath = Path.Combine(folder, fileName);
+                string fileName = $"{Guid.NewGuid()}.jpg";
+                string fullPath = Path.Combine(folder, fileName);
 
-                using (var stream = new FileStream(fullPath, FileMode.Create))
+                using (var inputStream = dto.PostImage.OpenReadStream())
                 {
-                    await dto.PostImage.CopyToAsync(stream);
+                    using (var image = await Image.LoadAsync(inputStream))
+                    {
+                        await image.SaveAsJpegAsync(fullPath);
+                    }
                 }
                 imagePath = "/uploads/posts/" + fileName;
             }
@@ -95,19 +103,32 @@ namespace ServicesLayer
             await _unitOfWork.Repository<Post>().AddAsync(post);
             return await _unitOfWork.CompleteAsync() > 0;
         }
-        public async Task<IEnumerable<CommentResponseDto>> GetCommentsByPostIdAsync(int postId)
+        public async Task<List<CommentResponseDto>> GetCommentsByPostIdAsync(int postId)
         {
-            var comments = await _unitOfWork.Repository<PostComment>()
-                .ListWithSpec(c => c.PostId == postId);
+            var comments = await _unitOfWork.Repository<PostComment>().ListWithSpec(
+  c => c.PostId == postId && c.ParentCommentId == null,
+    c => c.User,
+    c => c.Replies
+);
+            var baseUrl = "https://projecthubb.runasp.net";
+            return comments.Where(c => c.PostId == postId && c.ParentCommentId == null)
+                .Select(c => new CommentResponseDto
+                {
+                    Id = c.Id.ToString(),
+                    UserName = c.User?.FullName ?? "Unknown User",
+                    UserImage = string.IsNullOrEmpty(c.User.Profile_Image) ? null : baseUrl + c.User.Profile_Image,
+                    Content = c.Content,
+                    CreatedAt = c.CreatedAt,
 
-            return comments.Select(c => new CommentResponseDto
-            {
-                Id = c.Id.ToString(),
-                UserName = c.User?.FullName ?? "Unknown User",
-                UserImage = c.User?.Profile_Image,
-                Content = c.Content,
-                CreatedAt = c.CreatedAt
-            }).ToList();
+                    Replies = c.Replies?.Select(r => new CommentResponseDto
+                    {
+                        Id = r.Id.ToString(),
+                        Content = r.Content,
+                        UserName = r.User?.FullName ?? "Unknown User",
+                        UserImage = string.IsNullOrEmpty(r.User.Profile_Image) ? null : baseUrl + r.User.Profile_Image,
+                        CreatedAt = r.CreatedAt
+                    }).ToList() ?? new List<CommentResponseDto>()
+                }).ToList();
         }
         public async Task<bool> AddCommentAsync(CommentCreateDto dto)
         {
@@ -116,11 +137,42 @@ namespace ServicesLayer
                 Content = dto.Content,
                 PostId = dto.PostId,
                 UserId = dto.UserId,
+                ParentCommentId = dto.ParentCommentId,
                 CreatedAt = DateTime.Now
             };
 
             await _unitOfWork.Repository<PostComment>().AddAsync(comment);
-            return await _unitOfWork.CompleteAsync() > 0;
+            var result = await _unitOfWork.CompleteAsync() > 0;
+
+            if (result)
+            {
+                if (dto.ParentCommentId != null)
+                {
+                    var parentComment = await _unitOfWork.Repository<PostComment>().GetByIdAsync(dto.ParentCommentId.Value);
+
+                    if (parentComment.UserId != dto.UserId)
+                    {
+                        await _notificationService.SendToUserAsync(
+                            parentComment.UserId,
+                            "New reply to your comment!",
+                            $"{comment.User.FullName} reply to your comment",
+                            "info"
+                        );
+                    }
+                }
+                var post = await _unitOfWork.Repository<Post>().GetByIdAsync(dto.PostId);
+                if (post != null && post.UserId != dto.UserId)
+                {
+                    await _notificationService.SendToUserAsync(
+                           post.UserId,
+                           "New comment to your post!",
+                           $"{comment.User.FullName} reply to your comment",
+                           "info"
+                       );
+                }
+            }
+
+            return result;
         }
         public async Task<bool> ToggleLikeAsync(int postId, string userId)
         {
@@ -130,19 +182,31 @@ namespace ServicesLayer
             if (existingLike != null)
                 repo.Delete(existingLike);
             else
+            {
                 await repo.AddAsync(new Like { PostId = postId, UserId = userId });
-
+                var post = await _unitOfWork.Repository<Post>().GetByIdAsync(postId);
+                var user = await _unitOfWork.Repository<User>().GetByIdAsync(userId);
+                if (post != null && post.UserId != userId)
+                {
+                    await _notificationService.SendToUserAsync(
+            post.UserId,
+            "new like",
+            $"{user.FullName} like your post",
+            "success"
+        );
+                }
+            }
             return await _unitOfWork.CompleteAsync() > 0;
         }
         private PostResponseDto MapToPostDto(Post p, string currentUserId)
         {
-            var baseUrl = "http://projecthubb.runasp.net";
+            var baseUrl = "https://projecthubb.runasp.net";
             return new PostResponseDto
             {
                 Id = p.Id,
                 UserId = p.UserId,
                 UserName = p.User?.FullName ?? "Unknown User",
-                UserImage = p.User?.Profile_Image,
+                UserImage = string.IsNullOrEmpty(p.User.Profile_Image) ? null : baseUrl + p.User.Profile_Image,
                 UserAvatarColor = "#DBEAFE",
                 Content = p.Content,
                 TimeAgo = p.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ss"),
@@ -154,7 +218,6 @@ namespace ServicesLayer
                 Visibility = p.Visibility?.ToLower() ?? "public"
             };
         }
-
         public async Task<bool> DeletePostAsync(int postId, string userId)
         {
             var posts = await _unitOfWork.Repository<Post>()
@@ -166,7 +229,6 @@ namespace ServicesLayer
             _unitOfWork.Repository<Post>().Delete(post);
             return await _unitOfWork.CompleteAsync() > 0;
         }
-
         public async Task<bool> DeleteCommentAsync(int commentId, string userId)
         {
             var comment = await _unitOfWork.Repository<PostComment>().GetByIdAsync(commentId);

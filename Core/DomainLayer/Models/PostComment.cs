@@ -14,5 +14,9 @@ namespace DomainLayer.Models
         public string UserId { get; set; }
         [ForeignKey("UserId")]
         public virtual User User { get; set; }
+
+        public int? ParentCommentId { get; set; }
+        public virtual PostComment? ParentComment { get; set; }
+        public virtual ICollection<PostComment> Replies { get; set; } = new List<PostComment>();
     }
 }

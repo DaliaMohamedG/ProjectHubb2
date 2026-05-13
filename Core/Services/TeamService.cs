@@ -8,11 +8,12 @@ namespace ServicesLayer
     public class TeamService : ITeamService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly NotificationService _notificationService;
 
-        public TeamService(IUnitOfWork unitOfWork)
+        public TeamService(IUnitOfWork unitOfWork, NotificationService notificationService)
         {
             _unitOfWork = unitOfWork;
-
+            _notificationService = notificationService;
         }
 
         public async Task<IEnumerable<User>> SearchUsersAsync(string name)
@@ -39,9 +40,6 @@ namespace ServicesLayer
 
             await _unitOfWork.Repository<Team>().AddAsync(team);
 
-            var teamResult = await _unitOfWork.CompleteAsync();
-            if (teamResult <= 0) return false;
-
             var supervisorMember = new TeamMember
             {
                 TeamId = team.Id,
@@ -56,13 +54,16 @@ namespace ServicesLayer
                     .FindAsync(tm => dto.MemberIds.Contains(tm.UserId))).Select(tm => tm.UserId).ToList();
 
                 var studentInfo = await _unitOfWork.Repository<Student>().ListWithSpec(s => dto.MemberIds.Contains(s.Id));
+                var studentUserInfo = await _unitOfWork.Repository<User>().ListWithSpec(s => dto.MemberIds.Contains(s.Id));
 
                 var skippedStudents = new List<string>();
                 foreach (var userId in dto.MemberIds)
                 {
-                    if (existingGlobalMembers.Contains(userId))
+                    var selected = studentUserInfo.FirstOrDefault(s => s.Id == userId);
+                    if ((selected?.Role == "student" || selected?.Role == "user")
+                        && existingGlobalMembers.Contains(userId))
                     {
-                        var name = studentInfo.FirstOrDefault(s => s.Id == userId)?.FullName ?? userId;
+                        var name = selected?.FullName ?? userId;
                         skippedStudents.Add(name);
                         continue;
                     }
@@ -76,6 +77,13 @@ namespace ServicesLayer
                         RoleInTeam = studentTrack ?? "Assistant"
                     };
                     await _unitOfWork.Repository<TeamMember>().AddAsync(member);
+
+                    await _notificationService.SendToUserAsync(
+            userId,
+            "New team created!",
+            $"You have been added to {dto.Name}",
+            "info"
+        );
                 }
                 if (skippedStudents.Any())
                 {
@@ -159,17 +167,19 @@ namespace ServicesLayer
                 .Select(tm => tm.UserId)
                 .ToList();
 
-            var studentInfo = await _unitOfWork.Repository<Student>()
+            var studentInfo = await _unitOfWork.Repository<User>()
                 .ListWithSpec(s => dto.MemberIds.Contains(s.Id));
 
             var skippedStudents = new List<string>();
             int addedCount = 0;
 
+            var NameOfTeam = await _unitOfWork.Repository<Team>().GetByIdAsync(teamIdInt);
             foreach (var userId in dto.MemberIds)
             {
-                if (existingGlobalMembers.Contains(userId))
+                var selected = studentInfo.FirstOrDefault(s => s.Id == userId);
+                if ((selected?.Role == "student" || selected?.Role == "user") && existingGlobalMembers.Contains(userId))
                 {
-                    var name = studentInfo.FirstOrDefault(s => s.Id == userId)?.FullName ?? userId;
+                    var name = selected?.FullName ?? userId;
                     skippedStudents.Add(name);
                     continue;
                 }
@@ -182,8 +192,13 @@ namespace ServicesLayer
                 };
 
                 await _unitOfWork.Repository<TeamMember>().AddAsync(newMember);
+                await _notificationService.SendToUserAsync(
+        userId,
+        "You have been added to a team",
+        $"You have been added to {NameOfTeam.TeamName}",
+        "info"
+    );
                 addedCount++;
-
             }
 
             var result = await _unitOfWork.CompleteAsync();

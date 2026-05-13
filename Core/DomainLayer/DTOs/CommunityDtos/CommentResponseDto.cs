@@ -1,4 +1,4 @@
-﻿namespace DomainLayer.DTOs
+﻿namespace DomainLayer.DTOs.CommunityDtos
 {
     public class CommentResponseDto
     {
@@ -11,5 +11,6 @@
         public DateTime CreatedAt { get; set; }
         public int Likes { get; set; }
         public bool IsLiked { get; set; }
+        public List<CommentResponseDto> Replies { get; set; } = new List<CommentResponseDto>();
     }
 }

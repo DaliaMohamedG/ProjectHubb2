@@ -23,6 +23,7 @@ namespace PersistenceLayer
         public DbSet<TeamTasks> Tasks { get; set; }
         public DbSet<TaskAssignment> TaskAssignments { get; set; }
         public DbSet<TaskAttachment> TaskAttachments { get; set; }
+        public DbSet<NotificationModel> Notifications { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -194,6 +195,22 @@ namespace PersistenceLayer
                       .WithMany(t => t.Comments)
                       .HasForeignKey(c => c.TaskId)
                       .OnDelete(DeleteBehavior.Cascade);
+            });
+            modelBuilder.Entity<NotificationModel>(entity =>
+            {
+                entity.Property(n => n.IsRead)
+                    .HasDefaultValue(false);
+
+                entity.Property(n => n.CreatedAt)
+                    .HasDefaultValueSql("GETUTCDATE()");
+
+                entity.HasOne(n => n.User)
+                    .WithMany()
+                    .HasForeignKey(n => n.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(n => n.UserId);
+                entity.HasIndex(n => new { n.UserId, n.IsRead });
             });
         }
     }

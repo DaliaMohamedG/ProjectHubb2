@@ -2,14 +2,17 @@
 using DomainLayer.DTOs;
 using DomainLayer.Models;
 using ServicesAbstractionLayer;
+using SixLabors.ImageSharp;
 
 namespace ServicesLayer
 {
     public class ProjectService : IProjectService
     {
         private readonly IUnitOfWork _unitOfWork;
-        public ProjectService(IUnitOfWork unitOfWork) => _unitOfWork = unitOfWork;
-
+        public ProjectService(IUnitOfWork unitOfWork)
+        {
+            _unitOfWork = unitOfWork;
+        }
         public async Task<IEnumerable<ProjectResponseDto>> GetAllProjectsAsync(string? search, string? category)
         {
             var projects = await _unitOfWork.Repository<Project>().ListWithSpec(
@@ -62,12 +65,15 @@ namespace ServicesLayer
             {
                 foreach (var file in dto.CoverPhoto)
                 {
-                    string fileName = $"{Guid.NewGuid()}_{file.FileName}";
+                    string fileName = $"{Guid.NewGuid()}.jpg";
                     string path = Path.Combine(imagesFolder, fileName);
 
-                    using (var stream = new FileStream(path, FileMode.Create))
+                    using (var inputStream = file.OpenReadStream())
                     {
-                        await file.CopyToAsync(stream);
+                        using (var image = await Image.LoadAsync(inputStream))
+                        {
+                            await image.SaveAsJpegAsync(path);
+                        }
                     }
                     savedImagePaths.Add($"/uploads/images/{fileName}");
                 }
@@ -98,7 +104,9 @@ namespace ServicesLayer
             };
 
             await _unitOfWork.Repository<Project>().AddAsync(newProject);
-            return await _unitOfWork.CompleteAsync() > 0;
+            var result = await _unitOfWork.CompleteAsync();
+
+            return result > 0;
         }
         public async Task<IEnumerable<object>> GetProjectTeamMembersAsync(int projectId)
         {
@@ -117,18 +125,39 @@ namespace ServicesLayer
                 m => m.TeamId == memberInfo.TeamId,
                 m => m.User
             );
-
+            var baseUrl = "https://projecthubb.runasp.net";
             return teamMembers.Select(m => new
             {
                 Id = m.User.Id,
                 Name = m.User.FullName,
-                PhotoUrl = m.User.Profile_Image ?? "default.png",
+                PhotoUrl = string.IsNullOrEmpty(m.User.Profile_Image) ? null : baseUrl + m.User.Profile_Image,
                 Role = m.RoleInTeam
             });
         }
+        public async Task<ProjectResponseDto?> GetProjectByIdAsync(int id)
+        {
+            var project = await _unitOfWork.Repository<Project>().GetEntityWithSpec(
+                p => p.Id == id,
+                p => p.Student
+            );
+
+            if (project == null) return null;
+
+            return MapToProjectResponseDto(project);
+        }
+        public async Task<bool> DeleteProject(int id, string studentId)
+        {
+            var project = await _unitOfWork.Repository<Project>().GetByIdAsync(id);
+            if (project == null || project.StudentId != studentId)
+                return false;
+
+            _unitOfWork.Repository<Project>().Delete(project);
+            var result = await _unitOfWork.CompleteAsync();
+            return result > 0;
+        }
         private ProjectResponseDto MapToProjectResponseDto(Project p)
         {
-            var baseUrl = "http://projecthubb.runasp.net";
+            var baseUrl = "https://projecthubb.runasp.net";
             return new ProjectResponseDto
             {
                 Id = p.Id.ToString(),
@@ -139,7 +168,8 @@ namespace ServicesLayer
                 UserImage = string.IsNullOrEmpty(p.Student?.Profile_Image) ? null : (p.Student.Profile_Image.StartsWith("http") ? p.Student.Profile_Image : baseUrl + (p.Student.Profile_Image.StartsWith("/") ? "" : "/") + p.Student.Profile_Image),
                 Category = p.Category,
                 Tags = p.TechnologyUsed?.Split(',').Select(t => t.Trim()).ToList() ?? new List<string>(),
-                Images = string.IsNullOrEmpty(p.ImageUrl) ? new List<string>() : new List<string> { baseUrl + (p.ImageUrl.StartsWith("/") ? "" : "/") + p.ImageUrl },
+                Images = string.IsNullOrEmpty(p.ImageUrl) ? new List<string>() : p.ImageUrl.Split(',')
+                .Select(img => $"{baseUrl}{(img.StartsWith("/") ? "" : "/")}{img}").ToList(),
                 GithubUrl = p.GithubUrl,
                 CreatedAt = p.CreatedAt,
                 DocumentUrl = string.IsNullOrEmpty(p.ProjectFilePath) ? null : baseUrl + (p.ProjectFilePath.StartsWith("/") ? "" : "/") + p.ProjectFilePath

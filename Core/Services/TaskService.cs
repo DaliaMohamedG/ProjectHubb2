@@ -2,21 +2,18 @@
 using DomainLayer.DTOs.Task_Dtos;
 using DomainLayer.Models;
 using ServicesAbstractionLayer;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ServicesLayer
 {
     public class TaskService : ITaskService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly NotificationService _notificationService;
 
-        public TaskService(IUnitOfWork unitOfWork)
+        public TaskService(IUnitOfWork unitOfWork, NotificationService notificationService)
         {
             _unitOfWork = unitOfWork;
+            _notificationService = notificationService;
         }
 
         // ─────────────────────────────────────────────────────
@@ -67,7 +64,7 @@ namespace ServicesLayer
                 {
                     var assignment = new TaskAssignment
                     {
-                        Id = Guid.NewGuid().ToString(),  
+                        Id = Guid.NewGuid().ToString(),
                         TaskId = task.Id,
                         StudentId = studentId
                     };
@@ -110,7 +107,7 @@ namespace ServicesLayer
                 {
                     await _unitOfWork.Repository<TaskAssignment>().AddAsync(new TaskAssignment
                     {
-                        Id = Guid.NewGuid().ToString(), 
+                        Id = Guid.NewGuid().ToString(),
                         TaskId = taskId,
                         StudentId = studentId
                     });
@@ -182,7 +179,7 @@ namespace ServicesLayer
                     });
                 }
             }
-                task.Status = true;
+            task.Status = true;
 
             _unitOfWork.Repository<TeamTasks>().Update(task);
             await _unitOfWork.CompleteAsync();
