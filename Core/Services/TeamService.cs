@@ -8,9 +8,9 @@ namespace ServicesLayer
     public class TeamService : ITeamService
     {
         private readonly IUnitOfWork _unitOfWork;
-        private readonly NotificationService _notificationService;
+        private readonly INotificationService _notificationService;
 
-        public TeamService(IUnitOfWork unitOfWork, NotificationService notificationService)
+        public TeamService(IUnitOfWork unitOfWork, INotificationService notificationService)
         {
             _unitOfWork = unitOfWork;
             _notificationService = notificationService;
@@ -29,6 +29,32 @@ namespace ServicesLayer
         }
         public async Task<object> CreateTeamAsync(CreateTeamDto dto)
         {
+            var skippedStudents = new List<string>();
+            var studentsTrackInfo = new List<Student>();
+            var alreadyEnrolledStudentIds = new List<string>();
+            var usersInfo = new List<User>();
+
+            if (dto.MemberIds != null && dto.MemberIds.Any())
+            {
+                usersInfo = (await _unitOfWork.Repository<User>().FindAsync(u => dto.MemberIds.Contains(u.Id))).ToList();
+
+                var studentIdsInDto = usersInfo
+                    .Where(u => u.Role == "student" || u.Role == "user")
+                    .Select(u => u.Id)
+                    .ToList();
+
+                if (studentIdsInDto.Any())
+                {
+                    alreadyEnrolledStudentIds = (await _unitOfWork.Repository<TeamMember>()
+                        .FindAsync(tm => studentIdsInDto.Contains(tm.UserId)))
+                        .Select(tm => tm.UserId)
+                        .Distinct()
+                        .ToList();
+
+                    studentsTrackInfo = (await _unitOfWork.Repository<Student>().FindAsync(s => studentIdsInDto.Contains(s.Id))).ToList();
+                }
+            }
+
             var team = new Team
             {
                 TeamName = dto.Name,
@@ -38,62 +64,72 @@ namespace ServicesLayer
                 CreatedAt = DateTime.UtcNow
             };
 
-            await _unitOfWork.Repository<Team>().AddAsync(team);
-
             var supervisorMember = new TeamMember
             {
-                TeamId = team.Id,
                 UserId = dto.SupervisorId,
                 RoleInTeam = "Leader"
             };
-            await _unitOfWork.Repository<TeamMember>().AddAsync(supervisorMember);
+            team.Members.Add(supervisorMember);
 
             if (dto.MemberIds != null && dto.MemberIds.Any())
             {
-                var existingGlobalMembers = (await _unitOfWork.Repository<TeamMember>()
-                    .FindAsync(tm => dto.MemberIds.Contains(tm.UserId))).Select(tm => tm.UserId).ToList();
-
-                var studentInfo = await _unitOfWork.Repository<Student>().ListWithSpec(s => dto.MemberIds.Contains(s.Id));
-                var studentUserInfo = await _unitOfWork.Repository<User>().ListWithSpec(s => dto.MemberIds.Contains(s.Id));
-
-                var skippedStudents = new List<string>();
                 foreach (var userId in dto.MemberIds)
                 {
-                    var selected = studentUserInfo.FirstOrDefault(s => s.Id == userId);
-                    if ((selected?.Role == "student" || selected?.Role == "user")
-                        && existingGlobalMembers.Contains(userId))
+                    if (userId == dto.SupervisorId) continue;
+
+                    var user = usersInfo.FirstOrDefault(u => u.Id == userId);
+                    if (user == null) continue;
+
+                    if ((user.Role == "student" || user.Role == "user") && alreadyEnrolledStudentIds.Contains(userId))
                     {
-                        var name = selected?.FullName ?? userId;
-                        skippedStudents.Add(name);
+                        skippedStudents.Add(user.FullName ?? userId);
                         continue;
                     }
-                    if (userId == dto.SupervisorId) continue;
-                    var studentTrack = studentInfo.FirstOrDefault(s => s.Id == userId)?.Track;
+
+                    string roleInTeam = "Assistant";
+                    if (user.Role == "student" || user.Role == "user")
+                    {
+                        roleInTeam = studentsTrackInfo.FirstOrDefault(s => s.Id == userId)?.Track ?? "Student";
+                    }
 
                     var member = new TeamMember
                     {
-                        TeamId = team.Id,
                         UserId = userId,
-                        RoleInTeam = studentTrack ?? "Assistant"
+                        RoleInTeam = roleInTeam
                     };
-                    await _unitOfWork.Repository<TeamMember>().AddAsync(member);
 
-                    await _notificationService.SendToUserAsync(
-            userId,
-            "New team created!",
-            $"You have been added to {dto.Name}",
-            "info"
-        );
-                }
-                if (skippedStudents.Any())
-                {
-                    var message = $"The students were successfully added, except for: {string.Join(", ", skippedStudents)}, they are already enrolled in other teams";
-                    return new { success = true, warning = message };
+                    team.Members.Add(member);
                 }
             }
 
+            await _unitOfWork.Repository<Team>().AddAsync(team);
+
             var finalResult = await _unitOfWork.CompleteAsync();
-            if (finalResult > 0) return new { Success = true, Message = "Team created successfully!" };
+
+            if (finalResult > 0)
+            {
+                if (dto.MemberIds != null)
+                {
+                    foreach (var userId in dto.MemberIds)
+                    {
+                        if (userId == dto.SupervisorId || alreadyEnrolledStudentIds.Contains(userId)) continue;
+                        try
+                        {
+                            await _notificationService.SendToUserAsync(userId, "New team created!", $"You have been added to {dto.Name}", "info");
+                        }
+                        catch { }
+                    }
+                }
+
+                if (skippedStudents.Any())
+                {
+                    var warningMessage = $"The team was successfully created, except for: {string.Join(", ", skippedStudents)}, they are already enrolled in other teams.";
+                    return new { Success = true, Warning = warningMessage };
+                }
+
+                return new { Success = true, Message = "Team created successfully!" };
+            }
+
             return new { Success = false, Message = "Failed to create team." };
         }
         public async Task<IEnumerable<TeamResponseDto>> GetTeamsByUserIdAsync(string userId)
@@ -162,42 +198,80 @@ namespace ServicesLayer
                 return new { success = false, message = "Invalid Team ID" };
             }
 
-            var existingGlobalMembers = (await _unitOfWork.Repository<TeamMember>()
-                .FindAsync(tm => dto.MemberIds.Contains(tm.UserId)))
+            var team = await _unitOfWork.Repository<Team>().GetByIdAsync(teamIdInt);
+            if (team == null)
+            {
+                return new { success = false, message = "Team not found" };
+            }
+
+            var currentTeamMemberIds = (await _unitOfWork.Repository<TeamMember>()
+                .FindAsync(tm => tm.TeamId == teamIdInt))
                 .Select(tm => tm.UserId)
                 .ToList();
 
-            var studentInfo = await _unitOfWork.Repository<User>()
-                .ListWithSpec(s => dto.MemberIds.Contains(s.Id));
+            var usersInfo = await _unitOfWork.Repository<User>()
+                .ListWithSpec(u => dto.MemberIds.Contains(u.Id));
+
+            var studentIdsInDto = usersInfo
+                .Where(u => u.Role == "student" || u.Role == "user")
+                .Select(u => u.Id)
+                .ToList();
+
+            var alreadyEnrolledStudentIds = (await _unitOfWork.Repository<TeamMember>()
+                .FindAsync(tm => studentIdsInDto.Contains(tm.UserId)))
+                .Select(tm => tm.UserId)
+                .Distinct()
+                .ToList();
+
+            var studentsTrackInfo = await _unitOfWork.Repository<Student>()
+                .ListWithSpec(s => studentIdsInDto.Contains(s.Id));
 
             var skippedStudents = new List<string>();
             int addedCount = 0;
 
-            var NameOfTeam = await _unitOfWork.Repository<Team>().GetByIdAsync(teamIdInt);
+            var newlyAddedIds = new List<string>();
+
             foreach (var userId in dto.MemberIds)
             {
-                var selected = studentInfo.FirstOrDefault(s => s.Id == userId);
-                if ((selected?.Role == "student" || selected?.Role == "user") && existingGlobalMembers.Contains(userId))
+                var user = usersInfo.FirstOrDefault(u => u.Id == userId);
+                if (user == null) continue;
+
+                if (currentTeamMemberIds.Contains(userId) || newlyAddedIds.Contains(userId)) continue;
+
+                if ((user.Role == "student" || user.Role == "user") && alreadyEnrolledStudentIds.Contains(userId))
                 {
-                    var name = selected?.FullName ?? userId;
+                    var name = user.FullName ?? userId;
                     skippedStudents.Add(name);
                     continue;
+                }
+
+                string roleInTeam = "Member";
+                if (user.Role == "student" || user.Role == "user")
+                {
+                    roleInTeam = studentsTrackInfo.FirstOrDefault(s => s.Id == userId)?.Track ?? "Student";
+                }
+                else
+                {
+                    roleInTeam = "Assistant";
                 }
 
                 var newMember = new TeamMember
                 {
                     TeamId = teamIdInt,
                     UserId = userId,
-                    RoleInTeam = "Member"
+                    RoleInTeam = roleInTeam
                 };
 
                 await _unitOfWork.Repository<TeamMember>().AddAsync(newMember);
+                newlyAddedIds.Add(userId);
+
                 await _notificationService.SendToUserAsync(
-        userId,
-        "You have been added to a team",
-        $"You have been added to {NameOfTeam.TeamName}",
-        "info"
-    );
+                    userId,
+                    "You have been added to a team",
+                    $"You have been added to {team.TeamName}",
+                    "info"
+                );
+
                 addedCount++;
             }
 
@@ -209,7 +283,7 @@ namespace ServicesLayer
                 return new { success = true, message = skipMessage };
             }
 
-            return new { success = result > 0, message = result > 0 ? "Members added successfully" : "No new members were added" };
+            return new { success = result > 0 || addedCount > 0, message = addedCount > 0 ? "Members added successfully" : "No new members were added" };
         }
         public async Task<TeamResponseDto> GetTeamDetailsAsync(int teamId)
         {

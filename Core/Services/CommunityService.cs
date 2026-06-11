@@ -10,9 +10,9 @@ namespace ServicesLayer
     public class CommunityService : ICommunityService
     {
         private readonly IUnitOfWork _unitOfWork;
-        private readonly NotificationService _notificationService;
+        private readonly INotificationService _notificationService;
 
-        public CommunityService(IUnitOfWork unitOfWork, NotificationService notificationService)
+        public CommunityService(IUnitOfWork unitOfWork, INotificationService notificationService)
         {
             _unitOfWork = unitOfWork;
             _notificationService = notificationService;
@@ -138,7 +138,7 @@ namespace ServicesLayer
                 PostId = dto.PostId,
                 UserId = dto.UserId,
                 ParentCommentId = dto.ParentCommentId,
-                CreatedAt = DateTime.Now
+                CreatedAt = DateTime.UtcNow
             };
 
             await _unitOfWork.Repository<PostComment>().AddAsync(comment);
@@ -146,29 +146,42 @@ namespace ServicesLayer
 
             if (result)
             {
+                var userWhoCommented = await _unitOfWork.Repository<User>().GetByIdAsync(dto.UserId);
+                string commenterName = userWhoCommented?.FullName ?? "Someone";
+
                 if (dto.ParentCommentId != null)
                 {
                     var parentComment = await _unitOfWork.Repository<PostComment>().GetByIdAsync(dto.ParentCommentId.Value);
 
-                    if (parentComment.UserId != dto.UserId)
+                    if (parentComment != null && parentComment.UserId != dto.UserId)
+                    {
+                        try
+                        {
+                            await _notificationService.SendToUserAsync(
+                                parentComment.UserId,
+                                "New reply to your comment!",
+                                $"{commenterName} replied to your comment.",
+                                "info"
+                            );
+                        }
+                        catch { }
+                    }
+                }
+
+                var post = await _unitOfWork.Repository<Post>().GetByIdAsync(dto.PostId);
+
+                if (post != null && post.UserId != dto.UserId)
+                {
+                    try
                     {
                         await _notificationService.SendToUserAsync(
-                            parentComment.UserId,
-                            "New reply to your comment!",
-                            $"{comment.User.FullName} reply to your comment",
+                            post.UserId,
+                            "New comment on your post!",
+                            $"{commenterName} commented on your post.",
                             "info"
                         );
                     }
-                }
-                var post = await _unitOfWork.Repository<Post>().GetByIdAsync(dto.PostId);
-                if (post != null && post.UserId != dto.UserId)
-                {
-                    await _notificationService.SendToUserAsync(
-                           post.UserId,
-                           "New comment to your post!",
-                           $"{comment.User.FullName} reply to your comment",
-                           "info"
-                       );
+                    catch { }
                 }
             }
 

@@ -21,7 +21,7 @@ namespace Graduation_Project
                 options.KeepAliveInterval = TimeSpan.FromSeconds(15);
                 options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
             });
-            builder.Services.AddScoped<NotificationService>();
+            builder.Services.AddScoped<INotificationService, NotificationService>();
             #endregion
 
             builder.Services.AddControllers();

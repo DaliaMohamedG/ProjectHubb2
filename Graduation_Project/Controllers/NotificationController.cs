@@ -1,37 +1,46 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using ServicesLayer;
+using ServicesAbstractionLayer;
 
-namespace Graduation_Project.Controllers
+namespace PeresentationLayer.Controllers
 {
-    [Route("api/[controller]")]
     [ApiController]
+    [Route("api/notifications")]
     public class NotificationController : ControllerBase
     {
-        private readonly NotificationService _notificationService;
+        private readonly INotificationService _notificationService;
 
-        public NotificationController(NotificationService notificationService)
+        public NotificationController(INotificationService notificationService)
         {
             _notificationService = notificationService;
         }
 
-        [HttpPost("send")]
-        public async Task<IActionResult> Send([FromBody] SendNotificationRequest request)
+        [HttpGet("{userId}")]
+        public async Task<IActionResult> GetUserNotifications(string userId)
         {
-            await _notificationService.SendToUserAsync(
-                request.UserId,
-                request.Title,
-                request.Message,
-                request.Type
-            );
+            var notifications = await _notificationService
+                .GetUserNotificationsAsync(userId);
+            return Ok(notifications);
+        }
+
+        [HttpGet("{userId}/unread-count")]
+        public async Task<IActionResult> GetUnreadCount(string userId)
+        {
+            var count = await _notificationService.GetUnreadCountAsync(userId);
+            return Ok(new { count });
+        }
+
+        [HttpPut("{id}/mark-read")]
+        public async Task<IActionResult> MarkAsRead(int id)
+        {
+            await _notificationService.MarkAsReadAsync(id);
             return Ok(new { success = true });
         }
-    }
 
-    public class SendNotificationRequest
-    {
-        public string UserId { get; set; } = string.Empty;
-        public string Title { get; set; } = string.Empty;
-        public string Message { get; set; } = string.Empty;
-        public string Type { get; set; } = "info";
+        [HttpPut("{userId}/mark-all-read")]
+        public async Task<IActionResult> MarkAllAsRead(string userId)
+        {
+            await _notificationService.MarkAllAsReadAsync(userId);
+            return Ok(new { success = true });
+        }
     }
 }
